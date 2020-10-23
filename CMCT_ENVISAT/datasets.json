@@ -1,0 +1,34 @@
+{
+    "COMMENTS" : [
+	"Description of datasets available for CMCT comparisons",
+	"JRG 2016-03-24",
+	"SVN last commit: $Id: datasets.json 105 2016-07-02 10:46:41Z jguerber $"
+    ],
+
+
+
+    "known_datasets" : [
+	"envisat-cmctnc-wgselev-grn",
+	"envisat-cmctnc-egmmtelev-grn",
+	"envisat-cmctnc-egmtfelev-grn"
+    ],
+
+
+    "COMMENT" : "Below here, a section for each dataset in known_datasets",
+
+    "envisat-cmctnc-wgselev-grn" : {
+	"desc" : "ENVISAT elevations, WGS84 ellipsoid, Greenland, CMCT netCDF",
+	"configfile" : "envisat_cmctnc_grn_config.json"
+    },
+
+    "envisat-cmctnc-egmmtelev-grn" : {
+	"desc" : "ENVISAT elevations, EGM08 mean-tide, Greenland, CMCT netCDF",
+	"configfile" : "envisat_cmctnc_grn_config.json"
+    },
+
+    "envisat-cmctnc-egmtfelev-grn" : {
+	"desc" : "ENVISAT elevations, EGM08 tide-free, Greenland, CMCT netCDF",
+	"configfile" : "envisat_cmctnc_grn_config.json"
+    }
+
+}

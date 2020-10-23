@@ -1,0 +1,45 @@
+{
+    "COMMENT" : [
+	"CMCT run configuration file. Template.",
+	"Would typically be created by the web form.",
+	"JRG 2016-04-21",
+	"SVN last commit: $Id: cmct_run_config.json 105 2016-07-02 10:46:41Z jguerber $"
+  "ES 2017-06-21: reconfigured for CmCt reinstall."
+    ],
+
+    "cmct_run_config" : {
+
+	"run" : {
+	    "runid" : "<unique id for this run>",
+	    "date" : "<date and time>",
+	    "upload_dir" : "<incoming directory>",
+	    "user_run_title" : "<user-supplied title for this run>",
+	    "loginname" : "<user's login name>",
+	    "actualusername" : "<user's real name>",
+	    "email" : "<user's email address>"
+	},
+
+	"comparisons" : [
+	    {
+		"COMMENT" : "comparison 1",
+		"model" : {
+		    "modelname" : "<user-supplied name of this model>",
+		    "filename" : "<name of the uploaded model file>",
+		    "format" : "<netcdf or cism-text>",
+		    "spacing_km" : 1.0,
+		    "region" : "greenland",
+		    "variable" : "<name of variable for netcdf models>",
+		    "user_comments" : "<arbitrary comments from the user>",
+		    "model_time_index" : 1
+		},
+		"observations" : {
+		    "mission" : "icesat-glas",
+		    "campaign" : "<ICESat campaign, eg. L2A>",
+		    "dataset" : "<from datasets.json, eg. icesat-cism-elev-grn>"
+		}
+	    }
+
+	]
+
+    }
+}

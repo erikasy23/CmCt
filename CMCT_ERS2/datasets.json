@@ -1,0 +1,34 @@
+{
+    "COMMENTS" : [
+	"Description of datasets available for CMCT comparisons",
+	"JRG 2016-03-24",
+	"SVN last commit: $Id: datasets.json 105 2016-07-02 10:46:41Z jguerber $"
+    ],
+
+
+
+    "known_datasets" : [
+	"ers2-cmctnc-wgselev-grn",
+	"ers2-cmctnc-egmmtelev-grn",
+	"ers2-cmctnc-egmtfelev-grn"
+    ],
+
+
+    "COMMENT" : "Below here, a section for each dataset in known_datasets",
+
+    "ers2-cmctnc-wgselev-grn" : {
+	"desc" : "ERS-2 elevations, WGS84 ellipsoid, Greenland, CMCT netCDF",
+	"configfile" : "ers2_cmctnc_grn_config.json"
+    },
+
+    "ers2-cmctnc-egmmtelev-grn" : {
+	"desc" : "ERS-2 elevations, EGM08 mean-tide, Greenland, CMCT netCDF",
+	"configfile" : "ers2_cmctnc_grn_config.json"
+    },
+
+    "ers2-cmctnc-egmtfelev-grn" : {
+	"desc" : "ERS-2 elevations, EGM08 tide-free, Greenland, CMCT netCDF",
+	"configfile" : "ers2_cmctnc_grn_config.json"
+    }
+
+}
