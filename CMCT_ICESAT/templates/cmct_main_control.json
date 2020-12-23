@@ -1,0 +1,16 @@
+{
+    "COMMENT" : [
+	"CMCT Main Program control file. Template.",
+	"This would be created/filled by the cmct launch script.",
+	"JRG 2016-03-30",
+	"SVN last commit: $Id: cmct_main_control.json 105 2016-07-02 10:46:41Z jguerber $", 
+        "ES 2017-06-21: reconfigured for CmCt reinstall."
+    ],
+
+    "cmct_main" : {
+	"working_dir" : "(working dir, created by launch script)",
+	"models_dir"  : "(dir for model files, created by launch script)",
+	"cmct_run_config" : "(filename supplied by web page or launch script)",
+	"verbosity" : 0
+    }
+}
