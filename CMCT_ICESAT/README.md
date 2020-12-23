@@ -1,40 +1,30 @@
-Emacs org-mode file with notes about CMCT.            -*- org -*-
-In particular, a list of all the source files and what they contain, and
-TODOs.
+* CMCT notes
 
-#+TODO: TODO MAYBE LONGTERM | DONE CANCELED
+** Requirements 
 
-Last SVN commit: $Id: cmct.txt 116 2016-07-18 22:37:33Z jguerber $
+Basic dependencies:
+- gcc-gfortran
+- ksh
+- jq
+- make
+- git
+- unzip
+- wget
 
-* CMCT
+CentOS 7 RPMs:
+- libaec and libaec-devel (1.0.4-1)
+- hdf5 and hdf5-devel (1.8.12-11)
+- netcdf and netcdf-devel (4.3.3.1)
 
-** Requirements to build:
+from Unidata's github repo:
+- netcdf-fortran (4.3.3), provides libnetcdff.so and netcdf.mod
 
-*** gcc with gfortran
-**** Original development done with 4.6.3 (on atlas)
+fson from https://github.com/josephalevin/fson
+- Alternative json-fortran needs gcc/gfortran 4.9
 
-*** netcdf with Fortran90 binding (libnetcdff.so and netcdf.mod)
+For further information and history refer to contents of docs subdirectory.
 
-*** fson from https://github.com/josephalevin/fson
-**** fson can be built locally, doesn't require installation by system
-**** Alternative json-fortran needs gcc/gfortran 4.9
-
-
-** DONE Put everything under git control (or maybe svn).
-- Source and json files now in svn
-- Repository root is file:///home/jguerber/SVN/CMCT-repos
-- URL is file:///home/jguerber/SVN/CMCT-repos/CMCT/trunk
-
-** MAYBE Reintegrate ggsghpcc branch.
-- Having separate svn branch is proving somewhat cumbersome to maintain.
-- Proposal: Put host-specific files (launch script, json configs) in
-  subdirectories.  Makefile checks hostname, copies (or symlinks)
-  appropriate ones to build directory at build time.
-
-** DONE Build system: scons or make or ?
-- CMCT/Makefile
-- Looked at scons, but not clear if can write explicit rules.  Seems to do
-  the dependecy checking itself.
+** .mod files
 
 *** TODO Is this the right way to build .mod files?
 - gfortran doesn't create new .mod file if interfaces haven't changed.
