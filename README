@@ -1,1 +1,27 @@
-The Cryosphere model Comparison tool (CmCt) is a data analysis tool to facilitate ice sheet model comparison, validation, and analysis. Currently, the CmCt is used to compare ice sheet models provided by the user with remotely sensed laser (ICESat (Ice, Cloud, and land Elevation Satellite)), radar (ERS-1, ERS-2 (European Remote-Sensing Satellite), and Envisat (Environmental Satellite)) altimetry and GRACE (Gravity Recovery and Climate Experiment) gravimetry data. The CmCt works for both Greenland and Antarctica. 
+The Cryosphere model Comparison tool (CmCt) is a data analysis tool to facilitate ice sheet model comparison, validation, and analysis. Currently, the CmCt is used to compare ice sheet models provided by the user with remotely sensed laser (ICESat (Ice, Cloud, and land Elevation Satellite)), radar (ERS-1, ERS-2 (European Remote-Sensing Satellite), and Envisat (Environmental Satellite)) altimetry and GRACE (Gravity Recovery and Climate Experiment) gravimetry data. The CmCt works for both Greenland and Antarctica.
+
+To install the CmCt:
+1. `git clone` this repository
+1. `conda create --name CmCt`
+1. `conda activate CmCt`
+1. `conda install -c conda-forge netcdf-fortran`
+1. `mkdir externalpackages`
+1. `cd externalpackages`
+1. `git clone git@github.com:josephalevin/fson.git`
+1. `cd fson`
+1. `make`
+1. In the Makefiles for each `CMCT_[mission]` directory:
+```
+FSON_INC = ${HOME}/CmCt/fson/build     # fson*.mod are here
+FSON_LIB = ${HOME}/CmCt/fson/dist      # libfson.so is here
+NCDF_INC = ${HOME}/.conda_envs/CmCt/include  # netcdf.mod is here
+NCDF_LIB = ${HOME}/.conda_envs/CmCt/lib
+```
+1. `export LD_LIBRARY_PATH=${HOME}/CmCt/fson/dist:${HOME}/.conda_envs/CmCt/lib`
+
+To download CmCt datasets:
+1. Install Globus Connect Personal: https://docs.globus.org/globus-connect-personal/install/linux/
+1. Start Globus Connect Personal (without GUI): `./globusconnectpersonal -start &`
+1. Browse to the web-based Globus File Manager: https://app.globus.org/file-manager
+1. Create a datasets directory
+1. Transfer data from the GHub-CmCt-Data endpoint to the local endpoint (datasets directory)
