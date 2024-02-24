@@ -40,6 +40,8 @@
 ## Last SVN commit: $Id: cmct_launch.ksh 108 2016-07-12 06:59:10Z jguerber $
 ##"ES 2017-06-21: reconfigured for CmCt reinstall."
 
+export LD_LIBRARY_PATH=${HOME}/CmCt/externalpackages/fson/dist:${HOME}/.conda_envs/CmCt/lib
+
 ## Source configuration, from same directory as this script.
 CMCTBIN=$(dirname ${0})
 . ${CMCTBIN}/cmct_launch_config.ksh
