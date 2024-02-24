@@ -44,7 +44,7 @@ BCCEMAIL="erika.g.simon@nasa.gov"
 ADMINEMAIL="erika.g.simon@nasa.gov"
 
 ## Various programs we use
-JQ=/opt/csw/bin/jq      # cmd-line JSON parser
+JQ=${HOME}/CmCt/externalpackages/jq/jq-linux-amd64      # cmd-line JSON parser
 TAR=/opt/csw/bin/tar               # gnu tar
 GZIP=/usr/bin/gzip
 

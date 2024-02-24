@@ -18,6 +18,9 @@ NCDF_INC = ${HOME}/.conda_envs/CmCt/include  # netcdf.mod is here
 NCDF_LIB = ${HOME}/.conda_envs/CmCt/lib
 ```
 1. `export LD_LIBRARY_PATH=${HOME}/CmCt/fson/dist:${HOME}/.conda_envs/CmCt/lib`
+1. `mkdir externalpackages/jq`
+1. `cd externalpackages/jq`
+1. `wget https://jqlang.github.io/jq/download/`
 
 To download CmCt datasets:
 1. Install Globus Connect Personal: https://docs.globus.org/globus-connect-personal/install/linux/
