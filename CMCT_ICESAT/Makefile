@@ -24,10 +24,10 @@ OBJS =  cmct_main.o                \
 	moments2d_class_mod.o      \
 	polar_stereographic_mod.o
 
-FSON_INC = /home/jovyan/CmCt/fson/build     # fson*.mod are here
-FSON_LIB = /home/jovyan/CmCt/fson/dist      # libfson.so is here
-NCDF_INC = /home/jovyan/.conda_envs/CmCt/include  # netcdf.mod is here
-NCDF_LIB = /home/jovyan/.conda_envs/CmCt/lib
+FSON_INC = ${HOME}/CmCt/externalpackages/fson/build     # fson*.mod are here
+FSON_LIB = ${HOME}/CmCt/externalpackages/fson/dist      # libfson.so is here
+NCDF_INC = ${HOME}/.conda_envs/CmCt/include             # netcdf.mod is here
+NCDF_LIB = ${HOME}/.conda_envs/CmCt/lib                 # libnetcdff.so is here
 
 FC = gfortran
 FFLAGS = -g -O0 -Wall
@@ -130,3 +130,4 @@ polar_stereographic_mod.o  polar_stereographic_mod.mod: \
 
 clean: 
 	rm -f $(PROGRAM) *.o *.mod
+

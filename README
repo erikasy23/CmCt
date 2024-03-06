@@ -10,14 +10,7 @@ To install the CmCt:
 1. `git clone git@github.com:josephalevin/fson.git`
 1. `cd fson`
 1. `make`
-1. In the Makefiles for each `CMCT_[mission]` directory:
-```
-FSON_INC = ${HOME}/CmCt/fson/build     # fson*.mod are here
-FSON_LIB = ${HOME}/CmCt/fson/dist      # libfson.so is here
-NCDF_INC = ${HOME}/.conda_envs/CmCt/include  # netcdf.mod is here
-NCDF_LIB = ${HOME}/.conda_envs/CmCt/lib
-```
-1. `export LD_LIBRARY_PATH=${HOME}/CmCt/fson/dist:${HOME}/.conda_envs/CmCt/lib`
+1. `export LD_LIBRARY_PATH=${HOME}/CmCt/externalpackages/fson/dist:${HOME}/.conda_envs/CmCt/lib` ... NOTE that you may want to add this to your ~./bashrc
 1. `mkdir externalpackages/jq`
 1. `cd externalpackages/jq`
 1. `wget https://jqlang.github.io/jq/download/`
