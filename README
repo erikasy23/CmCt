@@ -13,7 +13,8 @@ To install the CmCt:
 1. `export LD_LIBRARY_PATH=${HOME}/CmCt/externalpackages/fson/dist:${HOME}/.conda_envs/CmCt/lib` ... NOTE that you may want to add this to your ~./bashrc
 1. `mkdir externalpackages/jq`
 1. `cd externalpackages/jq`
-1. `wget https://jqlang.github.io/jq/download/`
+1. `wget https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64`
+1. For each CMCT code directory (i.e., CMCT_ENVISAT), run `make` inside of that directory
 
 To download CmCt datasets:
 1. Install Globus Connect Personal: https://docs.globus.org/globus-connect-personal/install/linux/
