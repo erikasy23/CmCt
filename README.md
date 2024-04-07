@@ -22,3 +22,11 @@ To download CmCt datasets:
 1. Browse to the web-based Globus File Manager: https://app.globus.org/file-manager
 1. Create a datasets directory
 1. Transfer data from the GHub-CmCt-Data endpoint to the local endpoint (datasets directory)
+
+
+
+To configure and run CmCt 
+1. Create the directory for RUNS folder
+2. Update RUNDIRS for RUNS folder in cmct_launch_config.ksh file
+3. Update the tar variable path in cmct_launch_config.ksh file
+   
