@@ -42,8 +42,8 @@ OBJS =  cmct_main.o                \
 
 FSON_INC = ${HOME}/CmCt/externalpackages/fson/build     # fson*.mod are here
 FSON_LIB = ${HOME}/CmCt/externalpackages/fson/dist      # libfson.so is here
-NCDF_INC = ${HOME}/.conda_envs/CmCt/include             # netcdf.mod is here
-NCDF_LIB = ${HOME}/.conda_envs/CmCt/lib                 # libnetcdff.so is here
+NCDF_INC = /srv/conda/envs/CmCt/include             # netcdf.mod is here
+NCDF_LIB = /srv/conda/envs/CmCt/lib                 # libnetcdff.so is here
  
 ##all:
 ##	@echo "Please specify exact target (for now)"
