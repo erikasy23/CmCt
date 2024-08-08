@@ -117,7 +117,9 @@ def transformToGeodetic(gsfc, gis_ds):
     return mscns_trim, lithk_mascons_cmwe
 
 
-def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, shapefile, system_flag):
+def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag):
+
+    shapefile=os.path.join(parent_directory, 'data/ne_10m_coastline/ne_10m_coastline.shp')
 
     plt.figure(figsize=(24,14)) #, dpi=300)
 
@@ -268,7 +270,7 @@ def update_progress(progress, system_flag):
 
 
 # do the computation:
-def runProcessing(Mascon_data_path, shapefile, file, system_flag):
+def runProcessing(Mascon_data_path, file, system_flag):
 
     update_progress(0, system_flag)
 
@@ -311,7 +313,7 @@ def runProcessing(Mascon_data_path, shapefile, file, system_flag):
 
     # Plot results
     try:
-        plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, shapefile, system_flag)
+        plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag)
     except:
         print('Error: plotting failed.')
 
