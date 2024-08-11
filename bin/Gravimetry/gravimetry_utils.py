@@ -1,5 +1,40 @@
-import mascons
+import os,sys
+import glob as glob
+import numpy as np
+import h5py
 import xarray as xr
+import glob as glob
+
+import datetime
+
+import mascons
+
+site_packages = '/apps/share64/debian10/anaconda/anaconda-7/envs/geospatial-2021-09/lib/python3.7/site-packages'
+if os.path.exists(site_packages):
+    sys.path.append(site_packages)
+else:
+    print ('The %s directory does not exist. Please contact us.' %site_packages)
+
+import cartopy
+import cartopy.crs as ccrs
+import cartopy.io.shapereader as shpreader
+
+import matplotlib.pyplot as plt
+from matplotlib import rc
+rc('mathtext', default='regular')
+
+
+# Method : Set model projection from standard definition
+polar_stereographic = ccrs.Stereographic(
+    central_latitude=90.0,
+    central_longitude=-45.0,
+    false_easting=0.0,
+    false_northing=0.0,
+    true_scale_latitude=70.0,
+    globe=ccrs.Globe('WGS84')
+)
+
+
 
 def loadGsfcMascons(Mascon_data_path):
     # Load GSFC mascons
@@ -7,8 +42,9 @@ def loadGsfcMascons(Mascon_data_path):
 
     try:
         gsfc = mascons.load_gsfc_solution(h5_filename, lon_wrap='pm180')
-    except:
+    except Exception as error:
         print('Error: Failed to load GSFC mascons.')
+        print(error)
     return gsfc
 
 
@@ -22,14 +58,15 @@ def loadGisModel(nc_filename):
     # check for the lithk variable
     try:
         lithk = gis_ds['lithk']
-    except:
+    except Exception as error:
         print('Error: lithk variable expected but not found in model. Terminating calculation.')
+        print(error)
 
     return gis_ds
 
 
 # Compute mascon means
-def computeMasconMeans(gsfc):
+def computeMasconMeans(gsfc, start_date, end_date, output_widget):
 
     global lat_centers
     global lon_centers
@@ -45,9 +82,10 @@ def computeMasconMeans(gsfc):
 
     try:
         cmwe_delta = mascons.calc_mascon_delta_cmwe(gsfc, start_date, end_date)
-    except:
+    except Exception as error:
         with output_widget:
             print('Error: Failed to calculate mascon delta. Terminating calculation.')
+            print(error)
         return None
 
     # Select only GIS mascons
@@ -69,7 +107,7 @@ def computeMasconMeans(gsfc):
     return cmwe_delta
 
 
-def transformToGeodetic(gsfc, gis_ds):
+def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic=polar_stereographic):
 
     # Put model into mascon space:
 
@@ -117,8 +155,10 @@ def transformToGeodetic(gsfc, gis_ds):
     return mscns_trim, lithk_mascons_cmwe
 
 
-def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag):
-
+def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag, start_date, end_date, model_filename, output_widget, polar_stereographic=polar_stereographic):
+    
+    current_directory = os.getcwd()
+    parent_directory = os.path.abspath(os.path.join(current_directory, os.pardir, os.pardir))
     shapefile=os.path.join(parent_directory, 'data/ne_10m_coastline/ne_10m_coastline.shp')
 
     plt.figure(figsize=(24,14)) #, dpi=300)
@@ -187,13 +227,13 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, 
 
     # add model filename to subplot's title
     #ax2.set_title('Modeled mass change\n({0} to {1}\n{3})'.format(start_date, end_date, file_name[1]), size=14)
-    model_filename = str.split(file_name, '/')[1]
+    model_filename = str.split(model_filename, '/')[1]
     ax2.set_title('Modeled mass change\n({0} to {1})'.format(start_date, end_date), size=14)
 
     sc.remove()
 
     # add some explanatory information
-    plt.suptitle('Grace Mascon Comparison Plots', fontsize=25)
+    plt.suptitle('Gravimetry Comparison Plots', fontsize=25)
     plt.subplots_adjust(top=0.83)
 
 
@@ -226,16 +266,15 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, 
     ax3.gridlines(zorder=5, linestyle=':', linewidth=0.5)
 
     # add model filename to subplot's title
-    model_filename = str.split(file_name, '/')[1]
     ax3.set_title('Residual mass change\n({0} to {1})'.format( start_date, end_date), size=14)
 
     sc.remove()
 
     # add some explanatory information
-    plt.suptitle('Grace Mascon Comparison Plots', fontsize=25)
+    plt.suptitle('Gravimetry Comparison Plots', fontsize=25)
     plt.subplots_adjust(top=1.93)#0.83
 
-    #plot_filename = 'Mascon_comp.png'
+    plot_filename = model_filename + '_mascon_comp.png'
     plt.savefig(plot_filename)
 
 
@@ -252,7 +291,7 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, 
         plt.show()
 
 # update processing progress bar
-def update_progress(progress, system_flag):
+def update_progress(progress, system_flag, output_widget):
     if system_flag == 'ghub':
         title = 'Plotting Data'
         bar_length = 20
@@ -270,53 +309,56 @@ def update_progress(progress, system_flag):
 
 
 # do the computation:
-def runProcessing(Mascon_data_path, file, system_flag):
+def runProcessing(Mascon_data_path, file, system_flag, start_date, end_date, output_widget):
 
-    update_progress(0, system_flag)
+    update_progress(0, system_flag, output_widget)
 
     # load mascons
     gsfc = loadGsfcMascons(Mascon_data_path)
     if gsfc is not None:
-        update_progress(0.10, system_flag)
+        update_progress(0.10, system_flag, output_widget)
     else:
         return None
 
     # load user's input model
     gis_ds = loadGisModel(file)
     if gis_ds is not None:
-        update_progress(0.20, system_flag)
+        update_progress(0.20, system_flag, output_widget)
     else:
         return None
 
     # compute the mascon means
-    cmwe_delta = computeMasconMeans(gsfc)
+    cmwe_delta = computeMasconMeans(gsfc, start_date, end_date, output_widget)
     if cmwe_delta is not None:
-        update_progress(0.30, system_flag)
+        update_progress(0.30, system_flag, output_widget)
     else:
         return None
 
     # Put model into mascon space
     try:
-        mscns_trim, lithk_mascons_cmwe = transformToGeodetic(gsfc, gis_ds)
-    except:
+        mscns_trim, lithk_mascons_cmwe = transformToGeodetic(gsfc, gis_ds, start_date, end_date)
+    except Exception as error:
         print('Error: model transform to geodetic failed. Terminating calculation.')
+        print(error)
 
-    update_progress(0.60, system_flag)
+    update_progress(0.60, system_flag, output_widget)
 
     # calculate cmwe_diff
     try:
         cmwe_diff=mscns_trim-cmwe_delta
-    except:
+    except Exception as error:
         print('Error: Calculation failed.')
-    update_progress(0.80, system_flag)
+        print(error)
+    update_progress(0.80, system_flag, output_widget)
 
 
     # Plot results
     try:
-        plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag)
-    except:
+        plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag, start_date, end_date, file, output_widget)
+    except Exception as error:
         print('Error: plotting failed.')
-
+        print(error)
+    #update_progress(1.00, system_flag, output_widget)
 
     # todo: put in some checks
     return 'Success'
