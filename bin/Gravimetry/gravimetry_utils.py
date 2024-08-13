@@ -309,7 +309,7 @@ def update_progress(progress, system_flag, output_widget):
 
 
 # do the computation:
-def runProcessing(Mascon_data_path, file, system_flag, start_date, end_date, output_widget):
+def runProcessing(Mascon_data_path, file, system_flag, start_date, end_date, output_widget=None):
 
     update_progress(0, system_flag, output_widget)
 
