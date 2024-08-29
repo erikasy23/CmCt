@@ -176,7 +176,7 @@ def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic)
 
 
 # def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag, start_date, end_date, model_filename, output_widget, polar_stereographic=polar_stereographic):
-def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag, start_date, end_date, model_filename,polar_stereographic,loc, output_widget):
+def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,start_date, end_date, model_filename,polar_stereographic,loc,plot_filename, output_widget):
 
     
     current_directory = os.getcwd()
@@ -303,65 +303,42 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, 
     # add some explanatory information
     plt.suptitle('Gravimetry Comparison Plots', fontsize=25)
     plt.subplots_adjust(top=1.93)#0.83
-
-    plot_filename = model_filename + '_mascon_comp.png'
+    
     plt.savefig(plot_filename)
-
-
-
-    # for Ghub
-    if system_flag == 'ghub':
-        # place the plot in the output widget
-        output_widget.clear_output(wait = True)
-        with output_widget:
-            plt.show()
-
-    #for Cryocloud
-    else:
-        plt.show()
+    plt.show()
 
 # update processing progress bar
-def update_progress(progress, system_flag, output_widget):
-    if system_flag == 'ghub':
-        title = 'Plotting Data'
-        bar_length = 20
-        block = int(20.0*progress)
-        text = title+" [{0}] {1:.1f}%".format( "#" * block + "-" * (bar_length - block), progress * 100)
-        output_widget.clear_output(wait = True)
-        with output_widget:
-            print(text)
-    else:
-        title = 'Plotting Data'
-        bar_length = 20
-        block = int(20.0*progress)
-        text = title+" [{0}] {1:.1f}%".format( "#" * block + "-" * (bar_length - block), progress * 100)
-        print(text)
+def update_progress(progress, output_widget):
+    title = 'Plotting Data'
+    bar_length = 20
+    block = int(20.0*progress)
+    text = title+" [{0}] {1:.1f}%".format( "#" * block + "-" * (bar_length - block), progress * 100)
+    print(text)
 
 
 # do the computation:
-def runProcessing(Mascon_data_path, file, system_flag, start_date, end_date,polar_stereographic,loc,output_widget=None):
-
-
-    update_progress(0, system_flag, output_widget)
+def runProcessing(Mascon_data_path, file, start_date, end_date,polar_stereographic,loc,plot_filename,output_widget=None):
+    
+    update_progress(0, output_widget)
 
     # load mascons
     gsfc = loadGsfcMascons(Mascon_data_path)
     if gsfc is not None:
-        update_progress(0.10, system_flag, output_widget)
+        update_progress(0.10, output_widget)
     else:
         return None
 
     # load user's input model
     gis_ds = loadGisModel(file)
     if gis_ds is not None:
-        update_progress(0.20, system_flag, output_widget)
+        update_progress(0.20, output_widget)
     else:
         return None
 
     # compute the mascon means
     cmwe_delta = computeMasconMeans(gsfc, start_date, end_date,loc, output_widget)
     if cmwe_delta is not None:
-        update_progress(0.30, system_flag, output_widget)
+        update_progress(0.30, output_widget)
     else:
         return None
 
@@ -372,7 +349,7 @@ def runProcessing(Mascon_data_path, file, system_flag, start_date, end_date,pola
         print('Error: model transform to geodetic failed. Terminating calculation.')
         print(error)
 
-    update_progress(0.60, system_flag, output_widget)
+    update_progress(0.60, output_widget)
 
     # calculate cmwe_diff
     try:
@@ -380,12 +357,12 @@ def runProcessing(Mascon_data_path, file, system_flag, start_date, end_date,pola
     except Exception as error:
         print('Error: Calculation failed.')
         print(error)
-    update_progress(0.80, system_flag, output_widget)
+    update_progress(0.80, output_widget)
 
 
     # Plot results
     try:
-        plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag, start_date, end_date, file,polar_stereographic,loc, output_widget)
+        plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,start_date, end_date, file,polar_stereographic,loc,plot_filename, output_widget)
     except Exception as error:
         print('Error: plotting failed.')
         print(error)
