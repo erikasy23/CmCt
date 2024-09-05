@@ -12,11 +12,6 @@ import datetime
 
 import mascons
 
-site_packages = '/apps/share64/debian10/anaconda/anaconda-7/envs/geospatial-2021-09/lib/python3.7/site-packages'
-if os.path.exists(site_packages):
-    sys.path.append(site_packages)
-else:
-    print ('The %s directory does not exist. Please contact us.' %site_packages)
 
 import cartopy
 import cartopy.crs as ccrs
@@ -25,7 +20,6 @@ import cartopy.io.shapereader as shpreader
 import matplotlib.pyplot as plt
 from matplotlib import rc
 rc('mathtext', default='regular')
-
 
 
 # Method : Set model projection from standard definition
@@ -82,7 +76,7 @@ def loadGisModel(nc_filename):
 
 
 # Compute mascon means
-def computeMasconMeans(gsfc, start_date, end_date, loc,output_widget):
+def computeMasconMeans(gsfc, start_date, end_date, loc):
 
     global lat_centers
     global lon_centers
@@ -99,10 +93,8 @@ def computeMasconMeans(gsfc, start_date, end_date, loc,output_widget):
     try:
         cmwe_delta = mascons.calc_mascon_delta_cmwe(gsfc, start_date, end_date)
     except Exception as error:
-        with output_widget:
-            print('Error: Failed to calculate mascon delta. Terminating calculation.')
-            print(error)
-        return None
+        print('Error: Failed to calculate mascon delta. Terminating calculation.')
+        print(error)
 
     # Select only desired mascons
     if loc == "GIS":
@@ -124,10 +116,10 @@ def computeMasconMeans(gsfc, start_date, end_date, loc,output_widget):
     diverging_max = np.max([np.abs(min_mscns), np.abs(max_mscns)])
     diverging_min = -diverging_max
 
-    return cmwe_delta
+    return cmwe_delta,I_
 
 
-# def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic=polar_stereographic):
+
 def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic):
     # Put model into mascon space:
 
@@ -175,8 +167,8 @@ def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic)
     return mscns_trim, lithk_mascons_cmwe
 
 
-# def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe, system_flag, start_date, end_date, model_filename, output_widget, polar_stereographic=polar_stereographic):
-def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,start_date, end_date, model_filename,polar_stereographic,loc,plot_filename, output_widget):
+
+def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,start_date, end_date, polar_stereographic,loc,plot_filename):
 
     
     current_directory = os.getcwd()
@@ -257,7 +249,6 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
 
     # add model filename to subplot's title
     #ax2.set_title('Modeled mass change\n({0} to {1}\n{3})'.format(start_date, end_date, file_name[1]), size=14)
-    model_filename = str.split(model_filename, '/')[1]
     ax2.set_title('Modeled mass change\n({0} to {1})'.format(start_date, end_date), size=14)
 
     sc.remove()
@@ -307,66 +298,3 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
     plt.savefig(plot_filename)
     plt.show()
 
-# update processing progress bar
-def update_progress(progress, output_widget):
-    title = 'Plotting Data'
-    bar_length = 20
-    block = int(20.0*progress)
-    text = title+" [{0}] {1:.1f}%".format( "#" * block + "-" * (bar_length - block), progress * 100)
-    print(text)
-
-
-# do the computation:
-def runProcessing(Mascon_data_path, file, start_date, end_date,polar_stereographic,loc,plot_filename,output_widget=None):
-    
-    update_progress(0, output_widget)
-
-    # load mascons
-    gsfc = loadGsfcMascons(Mascon_data_path)
-    if gsfc is not None:
-        update_progress(0.10, output_widget)
-    else:
-        return None
-
-    # load user's input model
-    gis_ds = loadGisModel(file)
-    if gis_ds is not None:
-        update_progress(0.20, output_widget)
-    else:
-        return None
-
-    # compute the mascon means
-    cmwe_delta = computeMasconMeans(gsfc, start_date, end_date,loc, output_widget)
-    if cmwe_delta is not None:
-        update_progress(0.30, output_widget)
-    else:
-        return None
-
-    # Put model into mascon space
-    try:
-        mscns_trim, lithk_mascons_cmwe = transformToGeodetic(gsfc, gis_ds, start_date, end_date,polar_stereographic)
-    except Exception as error:
-        print('Error: model transform to geodetic failed. Terminating calculation.')
-        print(error)
-
-    update_progress(0.60, output_widget)
-
-    # calculate cmwe_diff
-    try:
-        cmwe_diff=mscns_trim-cmwe_delta
-    except Exception as error:
-        print('Error: Calculation failed.')
-        print(error)
-    update_progress(0.80, output_widget)
-
-
-    # Plot results
-    try:
-        plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,start_date, end_date, file,polar_stereographic,loc,plot_filename, output_widget)
-    except Exception as error:
-        print('Error: plotting failed.')
-        print(error)
-    #update_progress(1.00, system_flag, output_widget)
-
-    # todo: put in some checks
-    return 'Success'
