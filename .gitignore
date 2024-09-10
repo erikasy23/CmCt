@@ -4,6 +4,10 @@
 *~
 *-
 
+# CmCt datasets and externalpackages
+datasets/
+externalpackages/
+
 # Python .gitignore from https://github.com/github/gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/

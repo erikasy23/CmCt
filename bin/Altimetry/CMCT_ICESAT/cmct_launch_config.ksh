@@ -18,7 +18,8 @@
 ## Last SVN commit: $Id: cmct_launch_config.ksh 109 2016-07-12 07:03:38Z jguerber $
 
 ## Run directories are here
-RUNDIRS=/home/cmct/RUNS
+# RUNDIRS=/home/cmct/RUNS
+RUNDIRS=/home/jovyan/CmCt/RUNS
 
 ## Completed runs for retrieval.  FTPLOCAL is where we put them on the
 ## local file system.  DLLIST is the user's download file list.
@@ -44,8 +45,9 @@ BCCEMAIL="erika.g.simon@nasa.gov"
 ADMINEMAIL="erika.g.simon@nasa.gov"
 
 ## Various programs we use
-JQ=/opt/csw/bin/jq      # cmd-line JSON parser
-TAR=/opt/csw/bin/tar               # gnu tar
+JQ=${HOME}/CmCt/externalpackages/jq/jq-linux-amd64      # cmd-line JSON parser
+# TAR=/opt/csw/bin/tar               # gnu tar
+TAR=/usr/bin/tar              # gnu tar
 GZIP=/usr/bin/gzip
 
 ## CMCT configuration files

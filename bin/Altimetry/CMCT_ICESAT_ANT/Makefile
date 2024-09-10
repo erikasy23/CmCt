@@ -40,16 +40,17 @@ OBJS =  cmct_main.o                \
 	polar_stereographic_mod.o
 
 
-FSON_INC = /home/cmct/JSON/include  # fson*.mod are here
-FSON_LIB = /home/cmct/JSON/lib      # libfson.so is here
-NCDF_INC = /opt/csw/include 		# netcdf.mod is here
-
+FSON_INC = ${HOME}/CmCt/externalpackages/fson/build     # fson*.mod are here
+FSON_LIB = ${HOME}/CmCt/externalpackages/fson/dist      # libfson.so is here
+NCDF_INC = /srv/conda/envs/CmCt/include             # netcdf.mod is here
+NCDF_LIB = /srv/conda/envs/CmCt/lib                 # libnetcdff.so is here
+ 
 ##all:
 ##	@echo "Please specify exact target (for now)"
 
 
 cmct_main: $(OBJS)
-	gfortran -g -O0 -o cmct_main $(OBJS) -L$(FSON_LIB) -lfson -lnetcdff
+	gfortran -g -O0 -o cmct_main $(OBJS) -L$(FSON_LIB) -lfson -L$(NCDF_LIB) -lnetcdff
 	chmod a+rx cmct_launch.ksh cmct_launch_config.ksh
 
 cmct_main.o: cmct_main.f08 \
@@ -140,3 +141,7 @@ polar_stereographic_mod.o  polar_stereographic_mod.mod: \
 		polar_stereographic_mod.f90  \
 		kinds_mod.mod
 	gfortran -c -g -O0 polar_stereographic_mod.f90
+
+clean:
+	rm -rf *.o *.mod cmct_main
+
