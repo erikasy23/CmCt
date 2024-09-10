@@ -1,4 +1,0 @@
-#!/bin/sh
-
-# Reference: https://vhub.org/kb/Development/deploy-styles-for-jupyter-tools
-/usr/bin/invoke_app "$@" -C "start_jupyter -A -T @tool notebooks/Gravimetry/GISmodel_onto_GSFCmascons.ipynb" -t cmct -u anaconda-7 -r none
