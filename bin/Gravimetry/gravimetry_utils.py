@@ -209,7 +209,6 @@ def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I
 
     sc.remove()
 
-
   
     # Modeled
     ax2 = plt.subplot(132, projection=polar_stereographic)
@@ -245,7 +244,7 @@ def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I
 
     sc.remove()
 
-
+    
     # Obeserved-Modeled
     ax3 = plt.subplot(133, projection=polar_stereographic)
     ax3.set_extent(extent) # Map bounds, [west, east, south, north]
