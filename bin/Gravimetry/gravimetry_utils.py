@@ -88,7 +88,7 @@ def computeMasconMeans(gsfc, start_date, end_date, loc):
     global I_
 
     try:
-        cmwe_delta = mascons.calc_mascon_delta_cmwe(gsfc, start_date, end_date)
+        mass_change_obs = mascons.calc_mascon_delta_cmwe(gsfc, start_date, end_date)
     except Exception as error:
         print('Error: Failed to calculate mascon delta. Terminating calculation.')
         print(error)
@@ -99,7 +99,7 @@ def computeMasconMeans(gsfc, start_date, end_date, loc):
     elif loc == "AIS":
         I_ = (gsfc.locations == 3) | (gsfc.locations == 4)
     
-    cmwe_delta = cmwe_delta[I_]
+    mass_change_obs = mass_change_obs[I_]
     lat_centers = gsfc.lat_centers[I_]
     lon_centers = gsfc.lon_centers[I_]
     min_lons = gsfc.min_lons[I_]
@@ -107,13 +107,13 @@ def computeMasconMeans(gsfc, start_date, end_date, loc):
     min_lats = gsfc.min_lats[I_]
     max_lats = gsfc.max_lats[I_]
 
-    min_mscns = np.min(cmwe_delta)
-    max_mscns = np.max(cmwe_delta)
+    min_mscns = np.min(mass_change_obs)
+    max_mscns = np.max(mass_change_obs)
 
     diverging_max = np.max([np.abs(min_mscns), np.abs(max_mscns)])
     diverging_min = -diverging_max
 
-    return cmwe_delta,I_
+    return mass_change_obs,I_
 
 
 def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic):
@@ -155,16 +155,15 @@ def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic)
     # Ice thickness (m) to cm water equivalent:
     rho_ice = 918 # kg/m^3
     rho_water = 1000 # kg/m^3
-    lithk_mascons_cmwe = lithk_mascons * rho_ice / rho_water * 100
+    mass_change_mod = lithk_mascons * rho_ice / rho_water * 100
 
     # these variables depend only on the mascons here, which are fixed.
-    mscns_trim = lithk_mascons_cmwe[I_]
+    mass_change_mod_trim = mass_change_mod[I_]
 
-    return mscns_trim, lithk_mascons_cmwe
+    return mass_change_mod_trim, mass_change_mod
 
 
-def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,start_date, end_date, polar_stereographic,loc,shapefile,plot_filename):
-
+def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I_,start_date, end_date, polar_stereographic,loc,shapefile,plot_filename):
 
     plt.figure(figsize=(24,14)) #, dpi=300)
     
@@ -180,14 +179,14 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
     ax1 = plt.subplot(131, projection=polar_stereographic)
     ax1.set_extent(extent) # Map bounds, [west, east, south, north]
 
-    sc = ax1.scatter(lon_centers, lat_centers, 1, c=cmwe_delta, zorder=0, transform=ccrs.PlateCarree(),
+    sc = ax1.scatter(lon_centers, lat_centers, 1, c=mass_change_obs, zorder=0, transform=ccrs.PlateCarree(),
                      cmap=plt.cm.RdBu, vmin=diverging_min, vmax=diverging_max)
 
     normal = plt.Normalize(diverging_min, diverging_max)
-    cmap = plt.cm.RdBu(normal(cmwe_delta))
+    cmap = plt.cm.RdBu(normal(mass_change_obs))
 
     N_ints = 10
-    for i in range(len(mscns_trim)):
+    for i in range(len(mass_change_mod_trim)):
         x = np.append(np.linspace(min_lons[i], max_lons[i], N_ints), np.linspace(max_lons[i], min_lons[i], N_ints))
         y = np.append(min_lats[i]*np.ones(N_ints), max_lats[i]*np.ones(N_ints))
         ax1.fill(x, y, facecolor=cmap[i][:], edgecolor='none', zorder=5, transform=ccrs.PlateCarree())
@@ -196,12 +195,13 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
     c.set_label('cm water eq.', size=14)
     c.ax.tick_params(labelsize=12)
 
-    ax1.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
-       ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+    # ax1.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
+    #    ccrs.PlateCarree(), edgecolor='black', facecolor='none')
     # download coastline here: https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-coastline/
 
-    # Add coastlines on top
-    ax1.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    # # Add coastlines on top
+    # ax1.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    
     # Add gridlines
     ax1.gridlines(zorder=5, linestyle=':', linewidth=0.5)
 
@@ -210,18 +210,19 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
     sc.remove()
 
 
+  
     # Modeled
     ax2 = plt.subplot(132, projection=polar_stereographic)
     ax2.set_extent(extent) # Map bounds, [west, east, south, north]
 
-    sc = ax2.scatter(gsfc.lon_centers[I_], gsfc.lat_centers[I_], 1, c=lithk_mascons_cmwe[I_], zorder=0,
+    sc = ax2.scatter(gsfc.lon_centers[I_], gsfc.lat_centers[I_], 1, c=mass_change_mod_trim, zorder=0,
                      transform=ccrs.PlateCarree(), cmap=plt.cm.RdBu, vmin=diverging_min, vmax=diverging_max)
 
     normal = plt.Normalize(diverging_min, diverging_max)
-    cmap = plt.cm.RdBu(normal(lithk_mascons_cmwe[I_]))
+    cmap = plt.cm.RdBu(normal(mass_change_mod_trim))
 
     N_ints = 10
-    for i in range(len(mscns_trim)):
+    for i in range(len(mass_change_mod_trim)):
         x = np.append(np.linspace(min_lons[i], max_lons[i], N_ints), np.linspace(max_lons[i], min_lons[i], N_ints))
         y = np.append(min_lats[i]*np.ones(N_ints), max_lats[i]*np.ones(N_ints))
         ax2.fill(x, y, facecolor=cmap[i][:], edgecolor='none', zorder=5, transform=ccrs.PlateCarree())
@@ -230,37 +231,33 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
     c.set_label('cm water eq.', size=14)
     c.ax.tick_params(labelsize=12)
 
-    ax2.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
-       ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+    # ax2.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
+    #    ccrs.PlateCarree(), edgecolor='black', facecolor='none')
 
-    # Add coastlines on top
-    ax2.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    # # Add coastlines on top
+    # ax2.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    
     # Add gridlines
     ax2.gridlines(zorder=5, linestyle=':', linewidth=0.5)
 
     # add model filename to subplot's title
-    #ax2.set_title('Modeled mass change\n({0} to {1}\n{3})'.format(start_date, end_date, file_name[1]), size=14)
     ax2.set_title('Modeled mass change\n({0} to {1})'.format(start_date, end_date), size=14)
 
     sc.remove()
-
-    # add some explanatory information
-    plt.suptitle('Gravimetry Comparison Plots', fontsize=25)
-    plt.subplots_adjust(top=0.83)
 
 
     # Obeserved-Modeled
     ax3 = plt.subplot(133, projection=polar_stereographic)
     ax3.set_extent(extent) # Map bounds, [west, east, south, north]
 
-    sc = ax3.scatter(lon_centers, lat_centers, 1, c=cmwe_diff, zorder=0, transform=ccrs.PlateCarree(),
+    sc = ax3.scatter(lon_centers, lat_centers, 1, c=mass_change_delta, zorder=0, transform=ccrs.PlateCarree(),
                      cmap=plt.cm.RdBu, vmin=diverging_min, vmax=diverging_max)
 
     normal = plt.Normalize(diverging_min, diverging_max)
-    cmap = plt.cm.RdBu(normal(cmwe_diff))
+    cmap = plt.cm.RdBu(normal(mass_change_delta))
 
     N_ints = 10
-    for i in range(len(mscns_trim)):
+    for i in range(len(mass_change_mod_trim)):
         x = np.append(np.linspace(min_lons[i], max_lons[i], N_ints), np.linspace(max_lons[i], min_lons[i], N_ints))
         y = np.append(min_lats[i]*np.ones(N_ints), max_lats[i]*np.ones(N_ints))
         ax3.fill(x, y, facecolor=cmap[i][:], edgecolor='none', zorder=5, transform=ccrs.PlateCarree())
@@ -269,11 +266,12 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
     c.set_label('cm water eq.', size=14)
     c.ax.tick_params(labelsize=12)
 
-    ax3.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
-       ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+    # ax3.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
+    #    ccrs.PlateCarree(), edgecolor='black', facecolor='none')
 
-    # Add coastlines on top
-    ax3.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    # # Add coastlines on top
+    # ax3.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    
     # Add gridlines
     ax3.gridlines(zorder=5, linestyle=':', linewidth=0.5)
 
@@ -282,7 +280,7 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
 
     sc.remove()
 
-    # add some explanatory information
+    # Plot name
     plt.suptitle('Gravimetry Comparison Plots', fontsize=25)
     plt.subplots_adjust(top=1.93)#0.83
     
@@ -294,7 +292,7 @@ def plotFigure(cmwe_delta, mscns_trim, cmwe_diff, gsfc, I_, lithk_mascons_cmwe,s
 
 
 from datetime import datetime
-def write_to_netcdf(cmwe_delta, cmwe_diff, lithk_mascons_cmwe,gsfc, start_date, end_date, netcdf_filename):
+def write_to_netcdf(mass_change_obs, mass_change_delta, mass_change_mod,gsfc, start_date, end_date, netcdf_filename):
     # Get today's date
     # today = datetime.today().strftime('%Y-%m-%d')
     today = datetime.now().strftime('%Y-%m-%d')
@@ -303,31 +301,32 @@ def write_to_netcdf(cmwe_delta, cmwe_diff, lithk_mascons_cmwe,gsfc, start_date, 
     with Dataset(netcdf_filename, "w", format="NETCDF4") as ncfile:
         # Create dimensions
         # Number of points for cmwe_delta and cmwe_diff
-        point_dim_cmwe = ncfile.createDimension('points_cmwe', len(lat_centers))
+        point_dim_obs = ncfile.createDimension('points_obs', len(lat_centers))
         # Number of points for lithk_mascons_cmwe
-        point_dim_lithk = ncfile.createDimension('points_lithk', len(gsfc.lat_centers))  
+        point_dim_mod = ncfile.createDimension('points_mod', len(gsfc.lat_centers))  
     
         # Create variables for latitude and longitude (they are different sizes for cmwe and lithk_mascons_cmwe)
-        lats_cmwe = ncfile.createVariable('latitude_cmwe', 'f4', ('points_cmwe',))
-        lons_cmwe = ncfile.createVariable('longitude_cmwe', 'f4', ('points_cmwe',))
+        lats_obs = ncfile.createVariable('latitude_obs', 'f4', ('points_obs',))
+        lons_obs = ncfile.createVariable('longitude_obs', 'f4', ('points_obs',))
         
-        lats_lithk = ncfile.createVariable('latitude_lithk', 'f4', ('points_lithk',))
-        lons_lithk = ncfile.createVariable('longitude_lithk', 'f4', ('points_lithk',))
+        lats_mod = ncfile.createVariable('latitude_mod', 'f4', ('points_mod',))
+        lons_mod = ncfile.createVariable('longitude_mod', 'f4', ('points_mod',))
     
         # Create variables for mass balance data
-        observed_mass = ncfile.createVariable('cmwe_delta', 'f4', ('points_cmwe',))
-        modeled_mass = ncfile.createVariable('lithk_mascons_cmwe', 'f4', ('points_lithk',))
-        residual_mass = ncfile.createVariable('cmwe_diff', 'f4', ('points_cmwe',))
-    
+        observed_mass = ncfile.createVariable('mass_change_obs', 'f4', ('points_obs',))
+        modeled_mass = ncfile.createVariable('mass_change_mod', 'f4', ('points_mod',))
+        residual_mass = ncfile.createVariable('mass_change_delta', 'f4', ('points_obs',))
+
+        
         # Write data to variables
-        lats_cmwe[:] = lat_centers  # For cmwe_delta and cmwe_diff
-        lons_cmwe[:] = lon_centers
-        lats_lithk[:] = gsfc.lat_centers  # For lithk_mascons_cmwe
-        lons_lithk[:] = gsfc.lon_centers
+        lats_obs[:] = lat_centers  # For cmwe_delta and cmwe_diff
+        lons_obs[:] = lon_centers
+        lats_mod[:] = gsfc.lat_centers  # For lithk_mascons_cmwe
+        lons_mod[:] = gsfc.lon_centers
     
-        observed_mass[:] = cmwe_delta  # For cmwe_delta data
-        modeled_mass[:] = lithk_mascons_cmwe  # For lithk_mascons_cmwe data
-        residual_mass[:] = cmwe_diff  # For cmwe_diff data
+        observed_mass[:] = mass_change_obs # For mass_change_obs
+        modeled_mass[:] = mass_change_mod  # For lithk_mascons_cmwe data
+        residual_mass[:] = mass_change_delta  # For mass_change_delta
     
         # Add global attributes
         ncfile.description = 'Gravimetry Comparison Data including lithk_mascons_cmwe subset'
