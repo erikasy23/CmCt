@@ -116,7 +116,8 @@ def computeMasconMeans(gsfc, start_date, end_date, loc):
     return mass_change_obs,I_
 
 
-def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic):
+    
+def transformToGeodetic(gsfc, gis_ds, start_date, end_date, rho_ice,rho_water, polar_stereographic):
     # Put model into mascon space:
 
     # To compare with GRACE mascons, we need to compute lat/lon coordinates
@@ -152,9 +153,7 @@ def transformToGeodetic(gsfc, gis_ds, start_date, end_date, polar_stereographic)
     lithk_delta[np.isnan(lithk_delta)] = 0
     lithk_mascons = mascons.points_to_mascons(gsfc, lats, lons, lithk_delta)
 
-    # Ice thickness (m) to cm water equivalent:
-    rho_ice = 918 # kg/m^3
-    rho_water = 1000 # kg/m^3
+    # Ice thickness (m) to cm water equivalent:   
     mass_change_mod = lithk_mascons * rho_ice / rho_water * 100
 
     # these variables depend only on the mascons here, which are fixed.
@@ -169,8 +168,10 @@ def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I
     
     if loc == "GIS":
         extent = [-65, -20, 57, 84]
+        resolution_value='10m'
     elif loc == "AIS":
         extent = [-135, 45, -52, -52]
+        resolution_value='110m'
     else:
         print(f"Error: Input loc is equal to '{loc}', not 'AIS' or 'GIS")
         return None
@@ -195,12 +196,12 @@ def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I
     c.set_label('cm water eq.', size=14)
     c.ax.tick_params(labelsize=12)
 
-    # ax1.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
-    #    ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+    ax1.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
+       ccrs.PlateCarree(), edgecolor='black', facecolor='none')
     # download coastline here: https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-coastline/
 
-    # # Add coastlines on top
-    # ax1.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    # Add coastlines on top
+    ax1.coastlines(resolution=resolution_value, zorder=10, linewidth=0.5)
     
     # Add gridlines
     ax1.gridlines(zorder=5, linestyle=':', linewidth=0.5)
@@ -230,11 +231,11 @@ def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I
     c.set_label('cm water eq.', size=14)
     c.ax.tick_params(labelsize=12)
 
-    # ax2.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
-    #    ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+    ax2.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
+       ccrs.PlateCarree(), edgecolor='black', facecolor='none')
 
-    # # Add coastlines on top
-    # ax2.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    # Add coastlines on top
+    ax2.coastlines(resolution=resolution_value, zorder=10, linewidth=0.5)
     
     # Add gridlines
     ax2.gridlines(zorder=5, linestyle=':', linewidth=0.5)
@@ -265,11 +266,11 @@ def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I
     c.set_label('cm water eq.', size=14)
     c.ax.tick_params(labelsize=12)
 
-    # ax3.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
-    #    ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+    ax3.add_geometries(list(shpreader.Reader(os.path.expanduser(shapefile)).geometries()), \
+       ccrs.PlateCarree(), edgecolor='black', facecolor='none')
 
-    # # Add coastlines on top
-    # ax3.coastlines(resolution='10m', zorder=10, linewidth=0.5)
+    # Add coastlines on top
+    ax3.coastlines(resolution=resolution_value, zorder=10, linewidth=0.5)
     
     # Add gridlines
     ax3.gridlines(zorder=5, linestyle=':', linewidth=0.5)
@@ -291,44 +292,43 @@ def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I
 
 
 from datetime import datetime
-def write_to_netcdf(mass_change_obs, mass_change_delta, mass_change_mod,gsfc, start_date, end_date, netcdf_filename):
+def write_to_netcdf(mass_change_obs, mass_change_delta, mass_change_mod_trim,gsfc,I_, start_date, end_date, netcdf_filename):
     # Get today's date
-    # today = datetime.today().strftime('%Y-%m-%d')
     today = datetime.now().strftime('%Y-%m-%d')
     
+
     # --- Save Data to NetCDF ---
     with Dataset(netcdf_filename, "w", format="NETCDF4") as ncfile:
         # Create dimensions
-        # Number of points for cmwe_delta and cmwe_diff
-        point_dim_obs = ncfile.createDimension('points_obs', len(lat_centers))
-        # Number of points for lithk_mascons_cmwe
-        point_dim_mod = ncfile.createDimension('points_mod', len(gsfc.lat_centers))  
+        # Number of points for the data variables
+        point_dim = ncfile.createDimension('data_points', len(lat_centers))
     
-        # Create variables for latitude and longitude (they are different sizes for cmwe and lithk_mascons_cmwe)
-        lats_obs = ncfile.createVariable('latitude_obs', 'f4', ('points_obs',))
-        lons_obs = ncfile.createVariable('longitude_obs', 'f4', ('points_obs',))
+        # Create variables for latitude and longitude 
+        lats_obs = ncfile.createVariable('latitude_obs', 'f4', ('data_points',))
+        lons_obs = ncfile.createVariable('longitude_obs', 'f4', ('data_points',))
         
-        lats_mod = ncfile.createVariable('latitude_mod', 'f4', ('points_mod',))
-        lons_mod = ncfile.createVariable('longitude_mod', 'f4', ('points_mod',))
+        lats_mod = ncfile.createVariable('latitude_mod', 'f4', ('data_points',))
+        lons_mod = ncfile.createVariable('longitude_mod', 'f4', ('data_points',))
     
         # Create variables for mass balance data
-        observed_mass = ncfile.createVariable('mass_change_obs', 'f4', ('points_obs',))
-        modeled_mass = ncfile.createVariable('mass_change_mod', 'f4', ('points_mod',))
-        residual_mass = ncfile.createVariable('mass_change_delta', 'f4', ('points_obs',))
-
+        observed_mass = ncfile.createVariable('mass_change_obs', 'f4', ('data_points',))
+        modeled_mass = ncfile.createVariable('mass_change_mod', 'f4', ('data_points',))
+        residual_mass = ncfile.createVariable('mass_change_delta', 'f4', ('data_points',))
+    
         
         # Write data to variables
-        lats_obs[:] = lat_centers  # For cmwe_delta and cmwe_diff
+        lats_obs[:] = lat_centers  # For mass_change_obs and mass_change_delta
         lons_obs[:] = lon_centers
-        lats_mod[:] = gsfc.lat_centers  # For lithk_mascons_cmwe
-        lons_mod[:] = gsfc.lon_centers
+        lats_mod[:] = gsfc.lat_centers[I_] # For mass_change_mod_trim
+        lons_mod[:] = gsfc.lon_centers[I_]
     
-        observed_mass[:] = mass_change_obs # For mass_change_obs
-        modeled_mass[:] = mass_change_mod  # For lithk_mascons_cmwe data
-        residual_mass[:] = mass_change_delta  # For mass_change_delta
+        observed_mass[:] = mass_change_obs 
+        modeled_mass[:] = mass_change_mod_trim  
+        residual_mass[:] = mass_change_delta 
     
         # Add global attributes
         ncfile.description = 'Gravimetry Comparison Data including lithk_mascons_cmwe subset'
         ncfile.history = f'Created on {today}. Data from {start_date} to {end_date}.'
+
     
     print(f'Data successfully written to {netcdf_filename}')
