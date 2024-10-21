@@ -3,16 +3,20 @@ import glob as glob
 import numpy as np
 import h5py
 import xarray as xr
-import glob as glob
 import requests
 import re
 from requests.exceptions import HTTPError, RequestException
-import datetime
+
 import mascons
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.io.shapereader as shpreader
 from netCDF4 import Dataset
+
+
+import cftime 
+import datetime
+from datetime import timedelta 
 
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -41,6 +45,70 @@ def set_projection(loc):
             globe=ccrs.Globe('WGS84')
         )
     return polar_stereographic
+
+
+
+
+### Adjust the start and end date according to the time variable of model data
+def adjust_for_calendar(calendar_type, date_dt, time_var):
+    """
+    Adjusts the date format to match the type of the time variable in the dataset.
+    If the calendar is '360_day', adjust the day component accordingly.
+    """
+    # If the time_var is in numpy.datetime64, return the date as np.datetime64
+    if isinstance(time_var.values[0], np.datetime64):
+        return np.datetime64(date_dt)
+
+    # If the time_var uses a cftime calendar, handle accordingly
+    elif isinstance(time_var.values[0], cftime.datetime):
+        if calendar_type == '360_day' and date_dt.day > 30:
+            # In a 360-day calendar, each month has only 30 days.
+            return cftime.datetime(date_dt.year, date_dt.month, 30, calendar=calendar_type)
+        else:
+            # For other calendars, use the original date.
+            return cftime.datetime(date_dt.year, date_dt.month, date_dt.day, calendar=calendar_type)
+
+    else:
+        raise TypeError("Unsupported time format in the dataset.")
+
+
+
+def convert_to_model_calendar(time_var, start_date, end_date):
+    # Parse input dates to datetime objects
+    start_date_dt = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+    end_date_dt = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+    
+    # Extract the calendar type used by the time variable
+    try:
+        calendar_type = time_var.to_index().calendar
+        # print(calendar_type)
+    except AttributeError:
+        # Default to the 'standard' or 'gregorian' calendar if calendar attribute doesn't exist
+        calendar_type = 'standard'
+    
+    # Convert the start_date and end_date to the correct calendar type
+    start_date_cftime = adjust_for_calendar(calendar_type, start_date_dt,time_var)
+    end_date_cftime = adjust_for_calendar(calendar_type, end_date_dt,time_var)
+    
+    return start_date_cftime, end_date_cftime
+
+
+
+### Check the selected dates are within the range of model data
+def check_datarange(time_var,start_date, end_date):
+
+    # Get the minimum and maximum values directly from the time variable
+    min_time = time_var.values.min()
+    max_time = time_var.values.max()
+    
+    fomatted_start_date, fomatted_end_date =convert_to_model_calendar(time_var, start_date, end_date)
+    
+    # Check if the selected start and end dates are within the range
+    if min_time <= fomatted_start_date <= max_time and min_time <= fomatted_end_date <= max_time:
+        print(f"The selected dates {start_date} and {end_date} are within the range of the model data.")
+    else:
+        raise ValueError(f"Error: The selected dates {start_date} or {end_date} are out of range. Model data time range is from {min_time} to {max_time}.")
+
 
 
 
@@ -291,10 +359,9 @@ def plotFigure(mass_change_obs, mass_change_mod_trim, mass_change_delta, gsfc, I
 
 
 
-from datetime import datetime
 def write_to_netcdf(mass_change_obs, mass_change_delta, mass_change_mod_trim,gsfc,I_, start_date, end_date, netcdf_filename):
     # Get today's date
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
     
 
     # --- Save Data to NetCDF ---
