@@ -9,11 +9,13 @@ The CmCt gravimetry notebook expects thickness data (lithk variable) for the com
 
 At time of writing, the models MUST be defined on a rectangular X-Y grid in the ISMIP6 standard projected polar-stereographic space. (Note, NOT a lat-lon grid!) More information about ISMIP6, including information about the standard polar stereographic projection, can be found on the ISMIP6 wiki.
 
-## Getting started
+## Getting started (quickly)
 To get started, clone this repository:
 ```
-git cloneg it@github.com:NASA-Cryospheric-Sciences-Laboratory/CmCt.git
+git clone git@github.com:NASA-Cryospheric-Sciences-Laboratory/CmCt.git
 ```
+
+To run an example mass change comparison, [ADD EXAMPLE MODEL FILE TO THE REPO AND INSERT INSTRUCTIONS HERE.]
 
 # Details
 ## Mass change comparisons
