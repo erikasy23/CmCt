@@ -354,3 +354,79 @@ def write_mass_change_comparison(icesheet, basin_result, results,mass_balance_ty
     print(f"Writing data to CSV file: {csv_filename}")
     df.to_csv(csv_filename, index=False, header=False)
 
+
+
+## Write the mass comaprision output results to csv files
+def write_and_display_mass_change_comparison(icesheet, basin_result,results,mass_balance_type,start_date,end_date,csv_filename):
+    
+    print_regionalresult_check = results.get('print_regionalresult_check')
+    # Data for basin mass change
+    basin_mass_change_sums = basin_result['basin_mass_change_sums']
+    formatted_mass_change_sums = basin_mass_change_sums.apply(lambda x: f"{x:.2f}")
+
+    # Initialize list to store rows of data for CSV
+    data_rows = []
+
+    # Add mass change comparison header as the first row with two columns
+    data_rows.append([f"Mass change comparison ({mass_balance_type})", f"{start_date} - {end_date}"])
+
+
+    # Add column headers for basin mass change
+    data_rows.append(['Basin', 'Model mass change (Gt)', 'IMBIE mass change (Gt)', 'Residual (Gt)'])
+
+    # Placeholders for 'IMBIE mass change' and 'Residual' columns
+    imbie_mass_change = '--'
+    residual_mass_change = '--'
+
+    print(f"\nMass change comparison ({mass_balance_type}): {start_date} - {end_date}")
+    # Define column headers with fixed width for alignment
+    print(f"{'Basin':<10} {'Model mass change (Gt)':<25} {'IMBIE mass change (Gt)':<25} {'Residual (Gt)':<25}")
+   
+
+    # Loop through and collect each basin's subregion mass change
+    for subregion, model_mass_change in formatted_mass_change_sums.items():
+        print(f"{subregion:<10} {model_mass_change:<25} {imbie_mass_change:<25} {residual_mass_change:<25}")
+        data_rows.append([subregion, model_mass_change, imbie_mass_change, residual_mass_change])
+
+    if icesheet == "AIS" and print_regionalresult_check == 'YES':
+        region_mass_change_sums = basin_result.get('region_mass_change_sums')
+
+        if region_mass_change_sums is not None:
+            formatted_region_mass_change = region_mass_change_sums.apply(lambda x: f"{x:.2f}")
+
+            # Define regions, totals, and delta changes
+            regions = ["East", "West", "Peninsula", "Islands"]
+            IMBIE_totals = [results.get('IMBIE_total_mass_change_sum_east'), results.get('IMBIE_total_mass_change_sum_west'),
+                            results.get('IMBIE_total_mass_change_sum_peninsula')]
+            delta_changes = [results.get('delta_masschange_east'), results.get('delta_masschange_west'),
+                             results.get('delta_masschange_peninsula')]
+
+            # Collect each region's mass change
+            for region, total, delta in zip(regions, IMBIE_totals, delta_changes):
+                mass_change = formatted_region_mass_change.get(region, "N/A")
+                print(f"{region:<10} {mass_change:<25} {total:<25.2f} {delta:<25.2f}")
+                data_rows.append([region, mass_change, f"{total:.2f}" if total is not None else "N/A", 
+                                  f"{delta:.2f}" if delta is not None else "N/A"])
+
+    # Collect total mass balance
+    IMBIE_total_mass_change_sum = results.get('IMBIE_total_mass_change_sum')
+    delta_masschange = results.get('delta_masschange')
+    model_total_mass_balance = basin_result['model_total_mass_balance']
+
+
+    # Print total mass balance with formatted columns
+    print(f"{'Total':<10} {model_total_mass_balance.round(2):<25} {IMBIE_total_mass_change_sum:<25.2f} {delta_masschange:<25.2f}")
+
+    
+    # Add the total mass balance row
+    data_rows.append(['Total', f"{model_total_mass_balance:.2f}", f"{IMBIE_total_mass_change_sum:.2f}", 
+                      f"{delta_masschange:.2f}"])
+
+    # Convert the data rows into a pandas DataFrame
+    df = pd.DataFrame(data_rows)
+
+    # Write the DataFrame to a CSV file
+    print(f"Writing data to CSV file: {csv_filename}")
+    df.to_csv(csv_filename, index=False, header=False)
+
+
