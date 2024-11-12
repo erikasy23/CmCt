@@ -207,7 +207,11 @@ def sum_MassBalance(obs_filename,start_date,end_date,mass_balance_column):
     mass_balance_data = mass_balance_data.groupby(mass_balance_data['Date'].dt.year).apply(assign_month_order)
     
     # Convert 'Year' column to year-month-01 format where month is 'Month_Order'
-    mass_balance_data['Year'] = mass_balance_data.apply(lambda row: f"{row['Date'].year}-{str(row['Month_Order']).zfill(2)}-01", axis=1)
+    # mass_balance_data['Year'] = mass_balance_data.apply(lambda row: f"{row['Date'].year}-{str(row['Month_Order']).zfill(2)}-01", axis=1)
+    
+    # Convert 'Year' column to year-month-day format where month is 'Month_Order'    
+    mass_balance_data['Year'] = mass_balance_data.apply(lambda row: f"{row['Date'].year}-{str(row['Date'].month).zfill(2)}-{str(row['Date'].day).zfill(2)}", axis=1) 
+
     
     # Reset the index to flatten the multi-index structure
     mass_balance_data = mass_balance_data.reset_index(drop=True)
@@ -219,9 +223,17 @@ def sum_MassBalance(obs_filename,start_date,end_date,mass_balance_column):
 
     
     # Filter the data for the end date
-    end_data = mass_balance_data[mass_balance_data['Year'] == end_date]    
+    # Find data for the specified end_date
+    end_data = mass_balance_data[mass_balance_data['Year'] == end_date]
+    
+    # If no data is available for the exact end_date, find the nearest date before it
     if end_data.empty:
-        raise ValueError(f"Error: No data available for the end date {end_date}.")
+        end_data = mass_balance_data[mass_balance_data['Year'] < end_date].tail(1)
+    
+    # If end_data is still empty after attempting to find a date before, raise an error
+    if end_data.empty:
+        raise ValueError(f"Error: No data available for or before the end date {end_date}.")
+
     mass_balance_end_value = end_data[mass_balance_column].iloc[-1]  # Last value before or at the end date
 
     
@@ -266,23 +278,33 @@ def process_IMBIE(obs_filename, start_date, end_date, icesheet, basin_result,mas
             print_regionalresult_check = 'YES' 
             
             # Calculate total mass for each region
-            IMBIE_total_mass_change_sum_east = sum_MassBalance(obs_east_filename, start_date,         end_date,mass_balance_column)
+            IMBIE_total_mass_change_sum_east = sum_MassBalance(obs_east_filename, start_date,end_date,mass_balance_column)
             IMBIE_total_mass_change_sum_west = sum_MassBalance(obs_west_filename, start_date, end_date,mass_balance_column)
             IMBIE_total_mass_change_sum_peninsula = sum_MassBalance(obs_peninsula_filename, start_date, end_date,mass_balance_column)
             
-            # Calculate the difference of IMBIE-model mass change for each region
-            delta_masschange_east = IMBIE_total_mass_change_sum_east - region_mass_change_sums['East']
-            delta_masschange_west = IMBIE_total_mass_change_sum_west - region_mass_change_sums['West']
-            delta_masschange_peninsula = IMBIE_total_mass_change_sum_peninsula - region_mass_change_sums['Peninsula']
             
             # Store regional results in the dictionary
             results['IMBIE_total_mass_change_sum_east'] = IMBIE_total_mass_change_sum_east
             results['IMBIE_total_mass_change_sum_west'] = IMBIE_total_mass_change_sum_west
             results['IMBIE_total_mass_change_sum_peninsula'] = IMBIE_total_mass_change_sum_peninsula
+
+
+            # Check and calculate the difference of IMBIE-model for each region only if it is present in region_mass_change_sums
+            if 'East' in region_mass_change_sums:
+                delta_masschange_east = IMBIE_total_mass_change_sum_east - region_mass_change_sums['East']
+                results['IMBIE_total_mass_change_sum_east'] = IMBIE_total_mass_change_sum_east
+                results['delta_masschange_east'] = delta_masschange_east
             
-            results['delta_masschange_east'] = delta_masschange_east
-            results['delta_masschange_west'] = delta_masschange_west
-            results['delta_masschange_peninsula'] = delta_masschange_peninsula
+            if 'West' in region_mass_change_sums:
+                delta_masschange_west = IMBIE_total_mass_change_sum_west - region_mass_change_sums['West']
+                results['IMBIE_total_mass_change_sum_west'] = IMBIE_total_mass_change_sum_west
+                results['delta_masschange_west'] = delta_masschange_west
+            
+            if 'Peninsula' in region_mass_change_sums:
+                delta_masschange_peninsula = IMBIE_total_mass_change_sum_peninsula - region_mass_change_sums['Peninsula']
+                results['IMBIE_total_mass_change_sum_peninsula'] = IMBIE_total_mass_change_sum_peninsula
+                results['delta_masschange_peninsula'] = delta_masschange_peninsula
+        
 
         # Store regional check result in the dictionary
         results['print_regionalresult_check'] = print_regionalresult_check
@@ -319,23 +341,48 @@ def write_mass_change_comparison(icesheet, basin_result, results,mass_balance_ty
         data_rows.append([subregion, model_mass_change, imbie_mass_change, residual_mass_change])
 
     if icesheet == "AIS" and print_regionalresult_check == 'YES':
-        region_mass_change_sums = basin_result.get('region_mass_change_sums')
 
+        # Initialize lists for available regions, totals, and delta changes
+        available_regions = []
+        IMBIE_totals = []
+        delta_changes = []
+        
+        region_mass_change_sums = basin_result.get('region_mass_change_sums')
         if region_mass_change_sums is not None:
             formatted_region_mass_change = region_mass_change_sums.apply(lambda x: f"{x:.2f}")
 
-            # Define regions, totals, and delta changes
-            regions = ["East", "West", "Peninsula", "Islands"]
-            IMBIE_totals = [results.get('IMBIE_total_mass_change_sum_east'), results.get('IMBIE_total_mass_change_sum_west'),
-                            results.get('IMBIE_total_mass_change_sum_peninsula')]
-            delta_changes = [results.get('delta_masschange_east'), results.get('delta_masschange_west'),
-                             results.get('delta_masschange_peninsula')]
+            # Check each region and add only if present in region_mass_change_sums
+            if 'East' in region_mass_change_sums:
+                available_regions.append("East")
+                IMBIE_totals.append(results.get('IMBIE_total_mass_change_sum_east'))
+                delta_changes.append(results.get('delta_masschange_east'))
+            
+            if 'West' in region_mass_change_sums:
+                available_regions.append("West")
+                IMBIE_totals.append(results.get('IMBIE_total_mass_change_sum_west'))
+                delta_changes.append(results.get('delta_masschange_west'))
+            
+            if 'Peninsula' in region_mass_change_sums:
+                available_regions.append("Peninsula")
+                IMBIE_totals.append(results.get('IMBIE_total_mass_change_sum_peninsula'))
+                delta_changes.append(results.get('delta_masschange_peninsula'))
+            
+            if 'Islands' in region_mass_change_sums:
+                available_regions.append("Islands")
+                # Assuming you have corresponding totals and delta values for Islands
+                IMBIE_totals.append(results.get('IMBIE_total_mass_change_sum_islands'))
+                delta_changes.append(results.get('delta_masschange_islands'))
 
-            # Collect each region's mass change
-            for region, total, delta in zip(regions, IMBIE_totals, delta_changes):
+            # Collect each region's mass change and format output
+            for region, total, delta in zip(available_regions, IMBIE_totals, delta_changes):
                 mass_change = formatted_region_mass_change.get(region, "N/A")
-                data_rows.append([region, mass_change, f"{total:.2f}" if total is not None else "N/A", 
-                                  f"{delta:.2f}" if delta is not None else "N/A"])
+                # Use conditional formatting to avoid NoneType formatting errors
+                total_str = f"{total:.2f}" if total is not None else "N/A"
+                delta_str = f"{delta:.2f}" if delta is not None else "N/A"
+                print(f"{region:<10} {mass_change:<25} {total_str:<25} {delta_str:<25}")
+                
+                data_rows.append([region, mass_change, total_str, delta_str])
+  
 
     # Collect total mass balance
     IMBIE_total_mass_change_sum = results.get('IMBIE_total_mass_change_sum')
@@ -391,22 +438,46 @@ def write_and_display_mass_change_comparison(icesheet, basin_result,results,mass
     if icesheet == "AIS" and print_regionalresult_check == 'YES':
         region_mass_change_sums = basin_result.get('region_mass_change_sums')
 
+        # Initialize lists for available regions, totals, and delta changes
+        available_regions = []
+        IMBIE_totals = []
+        delta_changes = []
+        
         if region_mass_change_sums is not None:
             formatted_region_mass_change = region_mass_change_sums.apply(lambda x: f"{x:.2f}")
 
-            # Define regions, totals, and delta changes
-            regions = ["East", "West", "Peninsula", "Islands"]
-            IMBIE_totals = [results.get('IMBIE_total_mass_change_sum_east'), results.get('IMBIE_total_mass_change_sum_west'),
-                            results.get('IMBIE_total_mass_change_sum_peninsula')]
-            delta_changes = [results.get('delta_masschange_east'), results.get('delta_masschange_west'),
-                             results.get('delta_masschange_peninsula')]
+            # Check each region and add only if present in region_mass_change_sums
+            if 'East' in region_mass_change_sums:
+                available_regions.append("East")
+                IMBIE_totals.append(results.get('IMBIE_total_mass_change_sum_east'))
+                delta_changes.append(results.get('delta_masschange_east'))
+            
+            if 'West' in region_mass_change_sums:
+                available_regions.append("West")
+                IMBIE_totals.append(results.get('IMBIE_total_mass_change_sum_west'))
+                delta_changes.append(results.get('delta_masschange_west'))
+            
+            if 'Peninsula' in region_mass_change_sums:
+                available_regions.append("Peninsula")
+                IMBIE_totals.append(results.get('IMBIE_total_mass_change_sum_peninsula'))
+                delta_changes.append(results.get('delta_masschange_peninsula'))
+            
+            if 'Islands' in region_mass_change_sums:
+                available_regions.append("Islands")
+                # Assuming you have corresponding totals and delta values for Islands
+                IMBIE_totals.append(results.get('IMBIE_total_mass_change_sum_islands'))
+                delta_changes.append(results.get('delta_masschange_islands'))
 
-            # Collect each region's mass change
-            for region, total, delta in zip(regions, IMBIE_totals, delta_changes):
+                    
+            for region, total, delta in zip(available_regions, IMBIE_totals, delta_changes):
                 mass_change = formatted_region_mass_change.get(region, "N/A")
-                print(f"{region:<10} {mass_change:<25} {total:<25.2f} {delta:<25.2f}")
-                data_rows.append([region, mass_change, f"{total:.2f}" if total is not None else "N/A", 
-                                  f"{delta:.2f}" if delta is not None else "N/A"])
+                # Use conditional formatting to avoid NoneType formatting errors
+                total_str = f"{total:.2f}" if total is not None else "N/A"
+                delta_str = f"{delta:.2f}" if delta is not None else "N/A"
+                print(f"{region:<10} {mass_change:<25} {total_str:<25} {delta_str:<25}")
+                
+                data_rows.append([region, mass_change, total_str, delta_str])
+
 
     # Collect total mass balance
     IMBIE_total_mass_change_sum = results.get('IMBIE_total_mass_change_sum')
