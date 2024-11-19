@@ -15,7 +15,17 @@ To get started, clone this repository:
 git clone git@github.com:NASA-Cryospheric-Sciences-Laboratory/CmCt.git
 ```
 
-To run an example mass change comparison, [ADD EXAMPLE MODEL FILE TO THE REPO AND INSERT INSTRUCTIONS HERE.]
+To run an example comparison, switch to the `test` branch:
+```
+git checkout test
+```
+
+Next, run the `test/create_lithk_netcdfs.ipynb` notebook to create test model data for both ice sheets. Finally, run the `notebooks/IMBIE/imbie_comparison.ipynb` notebook, which will compare the test input data against IMBIE observations. This can be run for both ice sheets by changing the options in the `notebooks/IMBIE/imbie_comparison.ipynb` notebook.
+
+## Getting started (less quickly)
+TBD
+
+---
 
 # Details
 ## Mass change comparisons
