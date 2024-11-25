@@ -54,8 +54,9 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date, end_d
     check_datarange(time_var,start_date, end_date)
         
      # Set start_date as the first date in 'Year' and filtered_time_var as all subsequent dates
-    start_date_imbie = IMBIE_total_mass_change_sum['Year'].iloc[0]
-    filtered_time_var = IMBIE_total_mass_change_sum['Year'].iloc[1:]
+    # start_date_imbie = IMBIE_total_mass_change_sum['Year'].iloc[0]
+    start_date_imbie = start_date
+    filtered_time_var = IMBIE_total_mass_change_sum['Year'].iloc[0:]
     
     #Change to model data format
     start_date_dt_imbie = datetime.datetime.strptime(start_date_imbie, '%Y-%m-%d')   
@@ -166,7 +167,7 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date, end_d
 
 
 
-### IMBIE data date format conversion
+## IMBIE data date format conversion
 # Define a function to convert fractional years to a precise datetime format
 def fractional_year_to_date(year):
     year_int = int(year)  # Extract the integer part (the full year)
@@ -188,6 +189,10 @@ def fractional_year_to_date(year):
     return start_of_year + timedelta(days=fractional_days)
 
 
+
+
+
+
 # Group the data by year
 def assign_month_order(group):
     # Get the month of the first entry for the year
@@ -197,6 +202,15 @@ def assign_month_order(group):
     group['Month_Order'] = range(first_month, first_month + len(group))
     return group
 
+def adjust_date_to_next_month(date):
+    # Check if the day is 31
+    if date.day == 31:
+        # Move to the first day of the next month
+        if date.month == 12:  # Handle December separately
+            return pd.Timestamp(f"{date.year + 1}-01-01")
+        else:
+            return pd.Timestamp(f"{date.year}-{date.month + 1:02d}-01")
+    return date
 
 
 
@@ -215,6 +229,8 @@ def sum_MassBalance(obs_filename,start_date,end_date,mass_balance_column):
     
     # Apply the conversion function to the 'Year' column
     mass_balance_data['Date'] = mass_balance_data['Year'].apply(fractional_year_to_date)
+     # Check if the day is 31 chnage it to next month date
+    mass_balance_data['Date'] = mass_balance_data['Date'].apply(adjust_date_to_next_month)
     
     # Sort the data by 'Date' column to ensure it’s in increasing order of both year and fraction
     mass_balance_data = mass_balance_data.sort_values(by='Date')
