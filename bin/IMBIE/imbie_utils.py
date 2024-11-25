@@ -41,6 +41,7 @@ def check_datarange(time_var,start_date, end_date):
 ### Load the model data and calculate  model mass balance for each basin and total mass balance for whole region
 ## Interpolate the data to each imbie time and calculate the time varying mass change
 def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date, end_date,rho_ice,projection,shape_filename,icesheet):
+    
     #Model data
     gis_ds = xr.open_dataset(nc_filename)
     lithk = gis_ds['lithk']
@@ -56,7 +57,7 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date, end_d
     start_date_imbie = IMBIE_total_mass_change_sum['Year'].iloc[0]
     filtered_time_var = IMBIE_total_mass_change_sum['Year'].iloc[1:]
     
-    #Chnage to modal data format
+    #Change to model data format
     start_date_dt_imbie = datetime.datetime.strptime(start_date_imbie, '%Y-%m-%d')   
     # Adjust day to be 30 ( to avoid error if it's the 31st day in a 360_day calendar)
     start_date_cftime = cftime.datetime(start_date_dt_imbie.year, start_date_dt_imbie.month, min(start_date_dt_imbie.day, 30), calendar=gis_ds.time.to_index().calendar)    
@@ -95,13 +96,19 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date, end_d
         
         # Calculate the residual (difference from start)
         lithk_delta = lithk_current - lithk_start
-        lithk_start=lithk_current
     
         lithk_delta[np.isnan(lithk_delta)] = 0
+    
         
         #calculate area = x_resolution*y_resolution
         lithk_delta = (lithk_delta * x_resolution*y_resolution)*rho_ice * 1e-12
-        
+
+        ## TOTAL AREA
+        # Sum all of the area mass change
+        model_total_mass_balance_unmasked= np.nansum(lithk_delta)
+               
+         ## BASIN AREA
+         # Sum all of the basin mass change
         lithk_delta_flat = lithk_delta.flatten()
         
         # Create a lithk_df DataFrame with Geometry and Values
@@ -137,15 +144,17 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date, end_d
             raise ValueError("Invalid iceshee value. Must be 'GIS' or 'AIS'.")
         
         # Sum all of the basin mass change
-        model_total_mass_balance= basin_mass_change_sums.sum()
+        model_total_mass_balance_masked= basin_mass_change_sums.sum()
           
 
         # Store the residual in the dictionary for the current time step
         modal_mass_changes[str(time_step)] = {
-            'model_total_mass_balance': model_total_mass_balance,
+            'model_total_mass_balance_unmasked': model_total_mass_balance_unmasked,
+            'model_total_mass_balance_masked': model_total_mass_balance_masked,
             'basin_mass_change_sums': basin_mass_change_sums,
             'region_mass_change_sums': region_mass_change_sums
-        }    
+        } 
+           
         
     # Return all results as a dictionary
     return modal_mass_changes
@@ -190,9 +199,11 @@ def assign_month_order(group):
 
 
 
+
+
 ### Extract time varying IMBIE mass balance data and calculate the time varying mass difference 
 def sum_MassBalance(obs_filename,start_date,end_date,mass_balance_column):
-    
+
     # Load the CSV file
     mass_balance_data = pd.read_csv(obs_filename)
     
@@ -210,7 +221,7 @@ def sum_MassBalance(obs_filename,start_date,end_date,mass_balance_column):
       
     # Apply the function to each group of data (grouped by the year)
     mass_balance_data = mass_balance_data.groupby(mass_balance_data['Date'].dt.year).apply(assign_month_order)
-
+    
     
     # Convert 'Year' column to year-month-day format where month is 'Month_Order'    
     mass_balance_data['Year'] = mass_balance_data.apply(lambda row: f"{row['Date'].year}-{str(row['Date'].month).zfill(2)}-{str(row['Date'].day).zfill(2)}", axis=1) 
@@ -225,18 +236,18 @@ def sum_MassBalance(obs_filename,start_date,end_date,mass_balance_column):
         raise ValueError(f"Error: The column '{mass_balance_column}' does not exist in the CSV file.")
     
     
-    # Get the initial mass balance value before the start date
-    data_before_start_date = mass_balance_data[mass_balance_data['Year'] < start_date]
-    if data_before_start_date.empty:
-        raise ValueError(f"Error: No data available before the start date {start_date}.")
-    mass_balance_start_value = data_before_start_date[mass_balance_column].iloc[-1]  # Last value before start date
+    # Get the initial mass balance value for the start date
+    data_start_date = mass_balance_data[mass_balance_data['Year'] == start_date]
+    if data_start_date.empty:
+        raise ValueError(f"Error: No data available for the start date {start_date}.")
+    mass_balance_start_value = data_start_date[mass_balance_column].iloc[0]  # value of start date
     
     # Filter data between start_date_converted and end_date_converted (inclusive)
     filtered_data = mass_balance_data[
-        (mass_balance_data['Year'] >= start_date) & (mass_balance_data['Year'] <= end_date)
+        (mass_balance_data['Year'] > start_date) & (mass_balance_data['Year'] <= end_date)
     ]
-
-
+    
+    
     # Initialize the previous day's mass balance value to the starting mass balance
     previous_mass_balance = mass_balance_start_value
     
@@ -246,20 +257,20 @@ def sum_MassBalance(obs_filename,start_date,end_date,mass_balance_column):
     for index, row in filtered_data.iterrows():
         current_mass_balance = row[mass_balance_column]
         # Calculate the change from the previous day's balance
-        mass_change = current_mass_balance - previous_mass_balance
+        mass_change = current_mass_balance-previous_mass_balance
         mass_changes.append(mass_change)
-        # Update previous_mass_balance for the next iteration
-        previous_mass_balance = current_mass_balance
+   
     
     # Assign the calculated mass changes to a new column in the DataFrame
     filtered_data['IMBIE_Mass_Change'] = mass_changes
+
 
     return filtered_data
 
 
 
 ### Calculate mass balance difference of IMBIE and model data
-def process_IMBIE(obs_filename, start_date, end_date, icesheet, basin_result,IMBIE_total_mass_change_sum,mass_balance_column,obs_east_filename=None, obs_west_filename=None, obs_peninsula_filename=None):
+def process_IMBIE(obs_filename, start_date, end_date, icesheet,basin_result,IMBIE_total_mass_change_sum,mass_balance_column,obs_east_filename=None, obs_west_filename=None, obs_peninsula_filename=None):
     # Initialize a dictionary to store results
     results = {}
     print_regionalresult_check = 'NO'
@@ -271,20 +282,23 @@ def process_IMBIE(obs_filename, start_date, end_date, icesheet, basin_result,IMB
         
         # Check if the date exists in basin_result
         if str(date) in basin_result:
-            model_mass_change = basin_result[str(date)]['model_total_mass_balance']
+            model_mass_change_masked = basin_result[str(date)]['model_total_mass_balance_masked']
+            model_mass_change_unmasked = basin_result[str(date)]['model_total_mass_balance_unmasked']
             # Calculate the delta
-            delta_masschange = imbie_mass_change - model_mass_change
+            delta_masschange_masked  = imbie_mass_change - model_mass_change_masked 
+            delta_masschange_unmasked  = imbie_mass_change - model_mass_change_unmasked 
             
             # Store results in the dictionary
             results[str(date)] = {
                 'IMBIE_total_mass_change_sum': imbie_mass_change,
-                'Delta_MassChange': delta_masschange
+                'Delta_MassChange_masked': delta_masschange_masked,
+                'Delta_MassChange_unmasked': delta_masschange_unmasked
             }
         else:
             print(f"Date {date} not found in basin_result. Skipping.")  
     
-    if icesheet == "AIS":
-    
+
+    if icesheet == "AIS":  
         # Check if the required files exist
         if (obs_east_filename and os.path.exists(obs_east_filename)) and \
            (obs_west_filename and os.path.exists(obs_west_filename)) and \
@@ -337,37 +351,67 @@ def process_IMBIE(obs_filename, start_date, end_date, icesheet, basin_result,IMB
             
             # Store regional results in the main results dictionary
             results['Regional_Mass_Change_Summary'] = regional_results
-    
-        # Store regional check result in the dictionary
-        results['print_regionalresult_check'] = print_regionalresult_check
+
+    # Store regional check result in the dictionary
+    results['print_regionalresult_check'] = print_regionalresult_check
     return results
 
 
-
-## Write the mass comaprision output results to csv files
-def write_and_display_mass_change_comparison_all_dates(icesheet,basin_result, results, mass_balance_type, start_date, end_date, csv_filename):
+def write_and_display_mass_change_comparison_all_dates(icesheet, basin_result, results, mass_balance_type, start_date, end_date, csv_filename):
     # Initialize list to store rows of data for CSV
     data_rows = []
+
     print_regionalresult_check = results.get('print_regionalresult_check')
     
     # Add mass change comparison header
     data_rows.append([f"Mass change comparison ({mass_balance_type})", f"{start_date} - {end_date}"])
     data_rows.append(['Date', 'Basin/Region', 'Model mass change (Gt)', 'IMBIE mass change (Gt)', 'Residual (Gt)'])
-    
+
+    # Determine basins and regions from the first available date after the start_date
+    basins = []
+    regions = []
+    for date in sorted(basin_result.keys()):
+        if date > start_date:
+            basins = list(basin_result[date].get('basin_mass_change_sums', {}).keys())
+            if icesheet == "AIS" and print_regionalresult_check == 'YES':
+                regions = list(basin_result[date].get('region_mass_change_sums', {}).keys())
+            break
+
+    # Add rows for each basin with zero values for the start_date
+    for basin in basins:
+        data_rows.append([start_date, basin, "0.00", "--", "--"])
+
+    # Add rows for each region with zero values for the start_date (if applicable)
+    if icesheet == "AIS" and print_regionalresult_check == 'YES':
+        for region in regions:
+            data_rows.append([start_date, region, "0.00", "0.00", "0.00"])
+
+    # Add totals (masked and unmasked) with zero values for the start_date
+    data_rows.append([start_date, 'Masked_Total', "0.00", "0.00", "0.00"])
+    data_rows.append([start_date, 'Unmasked_Total', "0.00", "0.00", "0.00"])
+ 
+
     print(f"\n Time-varying Mass change comparison ({mass_balance_type}): {start_date} - {end_date}")
     print(f"{'Date':<15} {'Basin/Region':<20} {'Model mass change (Gt)':<25} {'IMBIE mass change (Gt)':<25} {'Residual (Gt)':<20}")
+    model_total_mass_balance_masked=0.00
+    imbie_total_mass_change_sum=0.00
+    delta_masschange_masked=0.00
     
+    print(f"{start_date:<15} {'Masked_Total':<20} {model_total_mass_balance_masked :<25} {imbie_total_mass_change_sum:<25} {delta_masschange_masked :<20}")
+    
+
+    # Process the rest of the dates
     for date, result in results.items():
         if date in basin_result:
             # Basin mass change sums
             basin_mass_change_sums = basin_result[date].get('basin_mass_change_sums', {})
+
             for basin, model_mass_change in basin_mass_change_sums.items():
                 imbie_mass_change = '--'
                 residual_mass_change = '--'
-                # print(f"{date:<15} {basin:<20} {model_mass_change:<25.2f} {imbie_mass_change:<25} {residual_mass_change:<20}")
                 data_rows.append([date, basin, f"{model_mass_change:.2f}", imbie_mass_change, residual_mass_change])
-            
-            if icesheet == "AIS" and print_regionalresult_check == 'YES':       
+
+            if icesheet == "AIS" and print_regionalresult_check == 'YES':
                 # Regional mass change sums
                 region_mass_change_sums = basin_result[date].get('region_mass_change_sums', {})
                 for region, model_mass_change in region_mass_change_sums.items():
@@ -376,24 +420,43 @@ def write_and_display_mass_change_comparison_all_dates(icesheet,basin_result, re
         
                     imbie_mass_change = f"{imbie_mass_change:.2f}" if isinstance(imbie_mass_change, (float, int)) else "N/A"
                     residual_mass_change = f"{residual_mass_change:.2f}" if isinstance(residual_mass_change, (float, int)) else "N/A"
-                    # print(f"{date:<15} {region:<20} {model_mass_change:<25.2f} {imbie_mass_change:<25} {residual_mass_change:<20}")
                     data_rows.append([date, region, f"{model_mass_change:.2f}", imbie_mass_change, residual_mass_change])
-        
-            # Total mass balance
-            model_total_mass_balance = basin_result[date].get('model_total_mass_balance', 'N/A')
+            
+            # Total mass balance masked
+            model_total_mass_balance_masked = basin_result[date].get('model_total_mass_balance_masked', 'N/A')   
             imbie_total_mass_change_sum = result.get('IMBIE_total_mass_change_sum', 'N/A')
-            delta_masschange = result.get('Delta_MassChange', 'N/A')
+            delta_masschange_masked  = result.get('Delta_MassChange_masked', 'N/A')
     
-            model_total_mass_balance = f"{model_total_mass_balance:.2f}" if isinstance(model_total_mass_balance, (float, int)) else "N/A"
+            model_total_mass_balance_masked  = f"{model_total_mass_balance_masked :.2f}" if isinstance(model_total_mass_balance_masked , (float, int)) else "N/A"
             imbie_total_mass_change_sum = f"{imbie_total_mass_change_sum:.2f}" if isinstance(imbie_total_mass_change_sum, (float, int)) else "N/A"
-            delta_masschange = f"{delta_masschange:.2f}" if isinstance(delta_masschange, (float, int)) else "N/A"
-            print(f"{date:<15} {'Total':<20} {model_total_mass_balance:<25} {imbie_total_mass_change_sum:<25} {delta_masschange:<20}")
-            data_rows.append([date, 'Total', model_total_mass_balance, imbie_total_mass_change_sum, delta_masschange])
-    
+            delta_masschange_masked  = f"{delta_masschange_masked :.2f}" if isinstance(delta_masschange_masked , (float, int)) else "N/A"
+            data_rows.append([date, 'Masked_Total', model_total_mass_balance_masked , imbie_total_mass_change_sum, delta_masschange_masked ]) 
+            print(f"{date:<15} {'Masked_Total':<20} {model_total_mass_balance_masked :<25} {imbie_total_mass_change_sum:<25} {delta_masschange_masked :<20}")
+
+            # Total mass balance unmasked
+            model_total_mass_balance_unmasked = basin_result[date].get('model_total_mass_balance_unmasked', 'N/A')
+            imbie_total_mass_change_sum = result.get('IMBIE_total_mass_change_sum', 'N/A')
+            delta_masschange_unmasked = result.get('Delta_MassChange_unmasked', 'N/A')
+        
+        
+            model_total_mass_balance_unmasked = f"{model_total_mass_balance_unmasked:.2f}" if isinstance(model_total_mass_balance_unmasked, (float, int)) else "N/A"
+            imbie_total_mass_change_sum = f"{imbie_total_mass_change_sum:.2f}" if isinstance(imbie_total_mass_change_sum, (float, int)) else "N/A"
+            delta_masschange_unmasked = f"{delta_masschange_unmasked:.2f}" if isinstance(delta_masschange_unmasked, (float, int)) else "N/A"
+            data_rows.append([date, 'Unmasked_Total', model_total_mass_balance_unmasked, imbie_total_mass_change_sum, delta_masschange_unmasked])
+
     # Convert the data rows into a pandas DataFrame
     df = pd.DataFrame(data_rows)
     
     # Write the DataFrame to a CSV file
     print(f"\nWriting data to CSV file: {csv_filename}")
     df.to_csv(csv_filename, index=False, header=False)
+
+
+
+
+
+
+
+
+
 
