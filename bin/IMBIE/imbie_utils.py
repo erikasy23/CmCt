@@ -411,6 +411,95 @@ def write_and_display_mass_change_comparison_all_dates(icesheet, basin_result, r
 
 
 
+def write_mass_change_comparison_all_dates(icesheet, basin_result, results, mass_balance_type,start_date_fract,end_date_fract, csv_filename):
+    # Initialize list to store rows of data for CSV
+    data_rows = []
+
+    print_regionalresult_check = results.get('print_regionalresult_check')
+    
+    # Add mass change comparison header
+    data_rows.append([f"Mass change comparison ({mass_balance_type})", f"{start_date_fract} - {end_date_fract}"])
+    data_rows.append(['Date', 'Basin/Region', 'Model mass change (Gt)', 'IMBIE mass change (Gt)', 'Residual (Gt)'])
+
+    # Determine basins and regions from the first available date after the start_date
+    basins = []
+    regions = []
+    for date in sorted(basin_result.keys()):
+        if float(date) > start_date_fract:
+            basins = list(basin_result[date].get('basin_mass_change_sums', {}).keys())
+            if icesheet == "AIS" and print_regionalresult_check == 'YES':
+                regions = list(basin_result[date].get('region_mass_change_sums', {}).keys())
+            break
+
+    # Add rows for each basin with zero values for the start_date
+    for basin in basins:
+        data_rows.append([start_date_fract, basin, "0.00", "--", "--"])
+
+    # Add rows for each region with zero values for the start_date (if applicable)
+    if icesheet == "AIS" and print_regionalresult_check == 'YES':
+        for region in regions:
+            data_rows.append([start_date_fract, region, "0.00", "0.00", "0.00"])
+
+    # Add totals (masked and unmasked) with zero values for the start_date
+    data_rows.append([start_date_fract, 'Masked_Total', "0.00", "0.00", "0.00"])
+    data_rows.append([start_date_fract, 'Unmasked_Total', "0.00", "0.00", "0.00"])
+ 
+
+    model_total_mass_balance_masked=0.00
+    imbie_total_mass_change_sum=0.00
+    delta_masschange_masked=0.00
+    
+
+    # Process the rest of the dates
+    for date, result in results.items():
+        if date in basin_result:
+            # Basin mass change sums
+            basin_mass_change_sums = basin_result[date].get('basin_mass_change_sums', {})
+
+            for basin, model_mass_change in basin_mass_change_sums.items():
+                imbie_mass_change = '--'
+                residual_mass_change = '--'
+                data_rows.append([date, basin, f"{model_mass_change:.2f}", imbie_mass_change, residual_mass_change])
+
+            if icesheet == "AIS" and print_regionalresult_check == 'YES':
+                # Regional mass change sums
+                region_mass_change_sums = basin_result[date].get('region_mass_change_sums', {})
+                for region, model_mass_change in region_mass_change_sums.items():
+                    imbie_mass_change = results.get('Regional_Mass_Change_Summary', {}).get(date, {}).get(f'IMBIE_Mass_Change_{region}', '--')
+                    residual_mass_change = results.get('Regional_Mass_Change_Summary', {}).get(date, {}).get(f'Delta_MassChange_{region}', '--')
+        
+                    imbie_mass_change = f"{imbie_mass_change:.2f}" if isinstance(imbie_mass_change, (float, int)) else "--"
+                    residual_mass_change = f"{residual_mass_change:.2f}" if isinstance(residual_mass_change, (float, int)) else "--"
+                    data_rows.append([date, region, f"{model_mass_change:.2f}", imbie_mass_change, residual_mass_change])
+            
+            # Total mass balance masked
+            model_total_mass_balance_masked = basin_result[date].get('model_total_mass_balance_masked', '--')   
+            imbie_total_mass_change_sum = result.get('IMBIE_total_mass_change_sum', '--')
+            delta_masschange_masked  = result.get('Delta_MassChange_masked', '--')
+    
+            model_total_mass_balance_masked  = f"{model_total_mass_balance_masked :.2f}" if isinstance(model_total_mass_balance_masked , (float, int)) else "--"
+            imbie_total_mass_change_sum = f"{imbie_total_mass_change_sum:.2f}" if isinstance(imbie_total_mass_change_sum, (float, int)) else "--"
+            delta_masschange_masked  = f"{delta_masschange_masked :.2f}" if isinstance(delta_masschange_masked , (float, int)) else "--"
+            data_rows.append([date, 'Masked_Total', model_total_mass_balance_masked , imbie_total_mass_change_sum, delta_masschange_masked ]) 
+
+            # Total mass balance unmasked
+            model_total_mass_balance_unmasked = basin_result[date].get('model_total_mass_balance_unmasked', '--')
+            imbie_total_mass_change_sum = result.get('IMBIE_total_mass_change_sum', '--')
+            delta_masschange_unmasked = result.get('Delta_MassChange_unmasked', '--')
+        
+        
+            model_total_mass_balance_unmasked = f"{model_total_mass_balance_unmasked:.2f}" if isinstance(model_total_mass_balance_unmasked, (float, int)) else "--"
+            imbie_total_mass_change_sum = f"{imbie_total_mass_change_sum:.2f}" if isinstance(imbie_total_mass_change_sum, (float, int)) else "--"
+            delta_masschange_unmasked = f"{delta_masschange_unmasked:.2f}" if isinstance(delta_masschange_unmasked, (float, int)) else "--"
+            data_rows.append([date, 'Unmasked_Total', model_total_mass_balance_unmasked, imbie_total_mass_change_sum, delta_masschange_unmasked])
+
+    # Convert the data rows into a pandas DataFrame
+    df = pd.DataFrame(data_rows)
+    
+    # Write the DataFrame to a CSV file
+    print(f"\nWriting data to CSV file: {csv_filename}")
+    df.to_csv(csv_filename, index=False, header=False)
+
 
 
 
