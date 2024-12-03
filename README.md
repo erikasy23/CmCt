@@ -23,6 +23,10 @@ If you have an account on [CryoCloud](https://cryointhecloud.com/), you can laun
 ## Going further
 TBD
 
+## Contributing
+
+Thanks for your interest in contributing! There are many ways to contribute to this project. Get started [here](CONTRIBUTING.md).
+
 ---
 
 # Details --- surface elevation comparison
