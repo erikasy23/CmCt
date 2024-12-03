@@ -5,11 +5,14 @@ To use the CmCt, you will need the code in this repository and the associated da
 
 ## Ice sheet model data upload requirements
 
-The CmCt gravimetry notebook expects thickness data (lithk variable) for the comparison.
-
-At time of writing, the models MUST be defined on a rectangular X-Y grid in the ISMIP6 standard projected polar-stereographic space. (Note, NOT a lat-lon grid!) More information about ISMIP6, including information about the standard polar stereographic projection, can be found on the ISMIP6 wiki.
+The CmCt requires ice sheet model files to follow the ISMIP6 conventions for model output variables. Currently, the models MUST be defined on a rectangular X-Y grid in the ISMIP6 standard projected polar-stereographic space. Details on this can be found on the [ISMIP6 Wiki](https://theghub.org/groups/ismip6/wiki).
 
 ## Getting started (quickly)
+
+### Launch directly on CryoCloud JupyterHub
+If you have an account on [CryoCloud](https://cryointhecloud.com/), you can launch CmCt directly on their JupyterHub using this [link](https://hub.cryointhecloud.com/hub/user-redirect/git-pull?repo=https%3A%2F%2Fgithub.com%2FNASA-Cryospheric-Sciences-Laboratory%2FCmCt&urlpath=lab%2Ftree%2FCmCt%2Fnotebooks%2FIMBIE%2Fimbie_comparison.ipynb&branch=main).
+
+### Run CmCt locally
 To get started, clone this repository:
 ```
 git clone git@github.com:NASA-Cryospheric-Sciences-Laboratory/CmCt.git
@@ -22,23 +25,12 @@ git checkout test
 
 Next, run the `test/create_lithk_netcdfs.ipynb` notebook to create test model data for both ice sheets. Finally, run the `notebooks/IMBIE/imbie_comparison.ipynb` notebook, which will compare the test input data against IMBIE observations. This can be run for both ice sheets by changing the options in the `notebooks/IMBIE/imbie_comparison.ipynb` notebook.
 
-## Getting started (less quickly)
+## Going further
 TBD
 
 ---
 
-# Details
-## Mass change comparisons
-Mass change comparisons use observations from the Ice sheet Mass Balance Inter-comparison Exercise (IMBIE) and from satellite altimetry from Gravity Recovery and Climate Experiment (GRACE) and GRACE-FO.
-
-To download IMBIE datasets:
-1. TBD
-
-To download GRACE and GRACE-FO datasets:
-1. TBD
-
-
-## Surface elevation comparison
+# Details --- surface elevation comparison
 The surface elevation comparison calculates differences between modeled surface elevations and observations from satellite laser (ICESat (Ice, Cloud, and land Elevation Satellite)), radar (ERS-1, ERS-2 (European Remote-Sensing Satellite), and Envisat (Environmental Satellite)) altimetry.
 
 To install the surface elevation comparison code:
