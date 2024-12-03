@@ -9,21 +9,16 @@ The CmCt requires ice sheet model files to follow the ISMIP6 conventions for mod
 
 ## Getting started (quickly)
 
+### Run CmCt locally
+1. Clone this repository: `git clone git@github.com:NASA-Cryospheric-Sciences-Laboratory/CmCt.git`
+2. Create a virtual environment (NOTE that this requires conda): `conda create --name CmCt --file requirements.txt`
+3. Activate the environment: `conda activate CmCt`
+4. Run the `test/create_lithk_netcdfs.ipynb` notebook to create test model data for both ice sheets.
+5. Run the `notebooks/IMBIE/imbie_comparison.ipynb` notebook, which will compare the test input data against IMBIE observations. This can be run for both ice sheets by changing the options in the notebook.
+
 ### Launch directly on CryoCloud JupyterHub
 If you have an account on [CryoCloud](https://cryointhecloud.com/), you can launch CmCt directly on their JupyterHub using this [link](https://hub.cryointhecloud.com/hub/user-redirect/git-pull?repo=https%3A%2F%2Fgithub.com%2FNASA-Cryospheric-Sciences-Laboratory%2FCmCt&urlpath=lab%2Ftree%2FCmCt%2Fnotebooks%2FIMBIE%2Fimbie_comparison.ipynb&branch=main).
 
-### Run CmCt locally
-To get started, clone this repository:
-```
-git clone git@github.com:NASA-Cryospheric-Sciences-Laboratory/CmCt.git
-```
-
-To run an example comparison, switch to the `test` branch:
-```
-git checkout test
-```
-
-Next, run the `test/create_lithk_netcdfs.ipynb` notebook to create test model data for both ice sheets. Finally, run the `notebooks/IMBIE/imbie_comparison.ipynb` notebook, which will compare the test input data against IMBIE observations. This can be run for both ice sheets by changing the options in the `notebooks/IMBIE/imbie_comparison.ipynb` notebook.
 
 ## Going further
 TBD
