@@ -3,25 +3,25 @@ The Cryosphere model Comparison tool (CmCt) compares ice sheet models against re
 
 To use the CmCt, you will need the code in this repository and the associated datasets (described below). The mass change comparisons use Jupyter notebooks to configure and run the comparisons, with supporting functions in Python scripts. The surface elevation comparison uses Jupyter notebooks to configure and run the comparisons, with supporting functions in Fortran code that needs to be compiled. **If you do not need the surface elevation comparison, you can skip the Fortran compilation steps below.**
 
-## Ice sheet model data upload requirements
-
-The CmCt requires ice sheet model files to follow the ISMIP6 conventions for model output variables. Currently, the models MUST be defined on a rectangular X-Y grid in the ISMIP6 standard projected polar-stereographic space. Details on this can be found on the [ISMIP6 Wiki](https://theghub.org/groups/ismip6/wiki).
-
 ## Getting started (quickly)
 
-### Run CmCt locally
+### Run the CmCt locally
 1. Clone this repository: `git clone git@github.com:NASA-Cryospheric-Sciences-Laboratory/CmCt.git`
 2. Create a virtual environment (NOTE that this requires conda): `conda create --name CmCt --file requirements.txt`
 3. Activate the environment: `conda activate CmCt`
 4. Run the `test/create_lithk_netcdfs.ipynb` notebook to create test model data for both ice sheets.
 5. Run the `notebooks/IMBIE/imbie_comparison.ipynb` notebook, which will compare the test input data against IMBIE observations. This can be run for both ice sheets by changing the options in the notebook.
 
-### Launch directly on CryoCloud JupyterHub
+### Launch the CmCt directly on the CryoCloud JupyterHub
 If you have an account on [CryoCloud](https://cryointhecloud.com/), you can launch CmCt directly on their JupyterHub using this [link](https://hub.cryointhecloud.com/hub/user-redirect/git-pull?repo=https%3A%2F%2Fgithub.com%2FNASA-Cryospheric-Sciences-Laboratory%2FCmCt&urlpath=lab%2Ftree%2FCmCt%2Fnotebooks%2FIMBIE%2Fimbie_comparison.ipynb&branch=main).
 
 
 ## Going further
 TBD
+
+### Ice sheet model data upload requirements
+The CmCt requires ice sheet model files to follow the ISMIP6 conventions for model output variables. Currently, the models MUST be defined on a rectangular X-Y grid in the ISMIP6 standard projected polar-stereographic space. Details on this can be found on the [ISMIP6 Wiki](https://theghub.org/groups/ismip6/wiki).
+
 
 ## Contributing
 
@@ -29,12 +29,10 @@ Thanks for your interest in contributing! There are many ways to contribute to t
 
 ---
 
-# Details --- surface elevation comparison
-The surface elevation comparison calculates differences between modeled surface elevations and observations from satellite laser (ICESat (Ice, Cloud, and land Elevation Satellite)), radar (ERS-1, ERS-2 (European Remote-Sensing Satellite), and Envisat (Environmental Satellite)) altimetry.
+# Details on running the surface elevation comparison
+The surface elevation comparison calculates differences between modeled surface elevations and observations from satellite laser (ICESat (Ice, Cloud, and land Elevation Satellite)) and radar (ERS-1, ERS-2 (European Remote-Sensing Satellite), and Envisat (Environmental Satellite)) altimetry.
 
 To install the surface elevation comparison code:
-1. `git clone` this repository
-1. `conda create --name CmCt`
 1. `conda activate CmCt`
 1. `conda install -c conda-forge netcdf-fortran`
 1. `mkdir externalpackages`
