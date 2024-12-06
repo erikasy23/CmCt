@@ -49,65 +49,37 @@ def set_projection(loc):
 
 
 
-### Adjust the start and end date according to the time variable of model data
-def adjust_for_calendar(calendar_type, date_dt, time_var):
-    """
-    Adjusts the date format to match the type of the time variable in the dataset.
-    If the calendar is '360_day', adjust the day component accordingly.
-    """
-    # If the time_var is in numpy.datetime64, return the date as np.datetime64
-    if isinstance(time_var.values[0], np.datetime64):
-        return np.datetime64(date_dt)
-
-    # If the time_var uses a cftime calendar, handle accordingly
-    elif isinstance(time_var.values[0], cftime.datetime):
-        if calendar_type == '360_day' and date_dt.day > 30:
-            # In a 360-day calendar, each month has only 30 days.
-            return cftime.datetime(date_dt.year, date_dt.month, 30, calendar=calendar_type)
-        else:
-            # For other calendars, use the original date.
-            return cftime.datetime(date_dt.year, date_dt.month, date_dt.day, calendar=calendar_type)
-
-    else:
-        raise TypeError("Unsupported time format in the dataset.")
-
-
-
-def convert_to_model_calendar(time_var, start_date, end_date):
-    # Parse input dates to datetime objects
-    start_date_dt = datetime.datetime.strptime(start_date, '%Y-%m-%d')
-    end_date_dt = datetime.datetime.strptime(end_date, '%Y-%m-%d')
-    
-    # Extract the calendar type used by the time variable
-    try:
-        calendar_type = time_var.to_index().calendar
-        # print(calendar_type)
-    except AttributeError:
-        # Default to the 'standard' or 'gregorian' calendar if calendar attribute doesn't exist
-        calendar_type = 'standard'
-    
-    # Convert the start_date and end_date to the correct calendar type
-    start_date_cftime = adjust_for_calendar(calendar_type, start_date_dt,time_var)
-    end_date_cftime = adjust_for_calendar(calendar_type, end_date_dt,time_var)
-    
-    return start_date_cftime, end_date_cftime
-
-
-
 ### Check the selected dates are within the range of model data
-def check_datarange(time_var,start_date, end_date):
+def check_datarange(time_var,start_date_cftime, end_date_cftime):
 
+    calendar_type = time_var.to_index().calendar
+       
     # Get the minimum and maximum values directly from the time variable
     min_time = time_var.values.min()
     max_time = time_var.values.max()
     
-    fomatted_start_date, fomatted_end_date =convert_to_model_calendar(time_var, start_date, end_date)
+    # Check if the selected start and end dates are within the range
+    if min_time <= start_date_cftime <= max_time and min_time <= end_date_cftime <= max_time:
+        print(f"The selected dates {start_date_cftime} and {end_date_cftime} are within the range of the model data.")
+    else:
+        raise ValueError(f"Error: The selected dates {end_date_cftime} or {end_date_cftime} are out of range. Model data time range is from {min_time} to {max_time}.")
+
+
+
+### Check the selected dates are within the range of model data
+def check_datarange(time_var,start_date_cftime, end_date_cftime):
+
+    calendar_type = time_var.to_index().calendar
+       
+    # Get the minimum and maximum values directly from the time variable
+    min_time = time_var.values.min()
+    max_time = time_var.values.max()
     
     # Check if the selected start and end dates are within the range
-    if min_time <= fomatted_start_date <= max_time and min_time <= fomatted_end_date <= max_time:
-        print(f"The selected dates {start_date} and {end_date} are within the range of the model data.")
+    if min_time <= start_date_cftime <= max_time and min_time <= end_date_cftime <= max_time:
+        print(f"The selected dates {start_date_cftime} and {end_date_cftime} are within the range of the model data.")
     else:
-        raise ValueError(f"Error: The selected dates {start_date} or {end_date} are out of range. Model data time range is from {min_time} to {max_time}.")
+        raise ValueError(f"Error: The selected dates {end_date_cftime} or {end_date_cftime} are out of range. Model data time range is from {min_time} to {max_time}.")
 
 
 
@@ -126,7 +98,7 @@ def loadGsfcMascons(Mascon_data_path):
 def loadGisModel(nc_filename):
     # Load GIS model into an Xarray
     try:
-        gis_ds = xr.open_dataset(nc_filename, autoclose=True, engine='netcdf4')
+        gis_ds = xr.open_dataset(nc_filename, autoclose=True, engine='netcdf4',use_cftime=True)
     except:
         print('Error: Failed to open model data; unexpected format found. Terminating calculation.')
 
