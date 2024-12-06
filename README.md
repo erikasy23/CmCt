@@ -59,3 +59,7 @@ To configure and run the surface elevation comparison:
 1. Update RUNDIRS for RUNS folder in cmct_launch_config.ksh file
 1. Update the tar variable path in cmct_launch_config.ksh file
    
+---
+
+## Acknowledgements
+Work on the CmCt has been supported by NASA's Cryospheric Sciences Program, the NASA Sea-Level Change Team, and the NASA Earth Information System project.
