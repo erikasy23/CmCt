@@ -49,14 +49,13 @@ def check_datarange(time_var,start_date_cftime, end_date_cftime):
 
 ### Load the model data and calculate model mass balance for each basin and total mass balance for whole region
 ## Interpolate the data to each IMBIE time and calculate the time varying mass change
-def process_model_data(nc_filename, IMBIE_total_mass_change_sum, \
+def process_model_data(mod_ds,time_var, IMBIE_total_mass_change_sum, \
                        start_date_cftime, end_date_cftime, start_date_fract, end_date_fract, \
                        rho_ice, projection, shape_filename, icesheet):
     
     # Model data
-    gis_ds = xr.open_dataset(nc_filename)
-    lithk = gis_ds['lithk']
-    time_var = gis_ds['time']
+    lithk = mod_ds['lithk']
+    
     lithk['time'] = [date.year + (date.dayofyr-1) / days_in_year(date) for date in time_var.data]
 
     # Load basin shapefile 
@@ -70,8 +69,8 @@ def process_model_data(nc_filename, IMBIE_total_mass_change_sum, \
     filtered_time_var = IMBIE_total_mass_change_sum['Year'].iloc[0:]
     
     #calculate area = x_resolution*y_resolution
-    x_coords = gis_ds['x'].values
-    y_coords = gis_ds['y'].values
+    x_coords = mod_ds['x'].values
+    y_coords = mod_ds['y'].values
     x_resolution = abs(x_coords[1] - x_coords[0])
     y_resolution = abs(y_coords[1] - y_coords[0])
     
@@ -254,9 +253,9 @@ def calculate_model_imbie_residuals(start_date_fract, end_date_fract, \
             print_regionalresult_check = 'YES'
             
             # Calculate total mass for each region
-            IMBIE_total_mass_change_sum_east = sum_MassBalance(obs_east_filename, start_date_fract,end_date_fract, mass_balance_column)
-            IMBIE_total_mass_change_sum_west = sum_MassBalance(obs_west_filename, start_date_fract,end_date_fract, mass_balance_column)
-            IMBIE_total_mass_change_sum_peninsula = sum_MassBalance(obs_peninsula_filename, start_date_fract,end_date_fract, mass_balance_column)
+            IMBIE_total_mass_change_sum_east = process_imbie_data(obs_east_filename, start_date_fract,end_date_fract, mass_balance_column)
+            IMBIE_total_mass_change_sum_west = process_imbie_data(obs_west_filename, start_date_fract,end_date_fract, mass_balance_column)
+            IMBIE_total_mass_change_sum_peninsula = process_imbie_data(obs_peninsula_filename, start_date_fract,end_date_fract, mass_balance_column)
     
             # Loop through IMBIE_total_mass_change_sum to populate results for each region
             regional_results = {}
