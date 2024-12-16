@@ -1,6 +1,4 @@
-# Gravimetry  functions
-
-
+from .time_utils import check_datarange
 import os,sys
 import glob as glob
 import numpy as np
@@ -10,9 +8,7 @@ import requests
 import re
 from requests.exceptions import HTTPError, RequestException
 
-from .time_utils import check_datarange
 from .mascons import *
-
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.io.shapereader as shpreader
@@ -53,12 +49,10 @@ def set_projection(loc):
 
 
 
-
 def loadGsfcMascons(Mascon_data_path):
            
     # Load GSFC mascons
     try:
-        # gsfc = mascons.load_gsfc_solution( Mascon_data_path, lon_wrap='pm180')
         gsfc = load_gsfc_solution( Mascon_data_path, lon_wrap='pm180')
     except Exception as error:
         print('Error: Failed to load GSFC mascons.')
@@ -99,7 +93,6 @@ def computeMasconMeans(gsfc, start_date, end_date, loc):
     global I_
 
     try:
-        # mass_change_obs = mascons.calc_mascon_delta_cmwe(gsfc, start_date, end_date)
         mass_change_obs = calc_mascon_delta_cmwe(gsfc, start_date, end_date)
     except Exception as error:
         print('Error: Failed to calculate mascon delta. Terminating calculation.')
@@ -128,7 +121,7 @@ def computeMasconMeans(gsfc, start_date, end_date, loc):
     return mass_change_obs,I_
 
 
-
+    
 def transformToGeodetic(gsfc, gis_ds, start_date, end_date, rho_ice,rho_water, polar_stereographic):
     # Put model into mascon space:
 
@@ -163,7 +156,6 @@ def transformToGeodetic(gsfc, gis_ds, start_date, end_date, rho_ice,rho_water, p
 
     # Mascon-average lithk from GIS
     lithk_delta[np.isnan(lithk_delta)] = 0
-    # lithk_mascons = mascons.points_to_mascons(gsfc, lats, lons, lithk_delta)
     lithk_mascons = points_to_mascons(gsfc, lats, lons, lithk_delta)
 
     # Ice thickness (m) to cm water equivalent:   
