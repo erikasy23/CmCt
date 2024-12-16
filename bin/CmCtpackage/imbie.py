@@ -1,5 +1,3 @@
-# IMBIE  functions
-
 from .time_utils import check_datarange
 import os
 import numpy as np
@@ -32,15 +30,33 @@ def days_in_year(date):
 
 
 
+### Check the selected dates are within the range of model data
+# def check_datarange(time_var,start_date_cftime, end_date_cftime):
 
-### Load the model data and calculate  model mass balance for each basin and total mass balance for whole region
-## Interpolate the data to each imbie time and calculate the time varying mass change
-def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date_cftime, end_date_cftime,start_date_fract, end_date_fract,rho_ice,projection,shape_filename,icesheet):
+    calendar_type = time_var.to_index().calendar
+       
+    # Get the minimum and maximum values directly from the time variable
+    min_time = time_var.values.min()
+    max_time = time_var.values.max()
     
-    #Model data
-    gis_ds = xr.open_dataset(nc_filename,use_cftime=True)
-    lithk = gis_ds['lithk']
-    time_var = gis_ds['time']
+    # Check if the selected start and end dates are within the range
+    if min_time <= start_date_cftime <= max_time and min_time <= end_date_cftime <= max_time:
+        print(f"The selected dates {start_date_cftime} and {end_date_cftime} are within the range of the model data.")
+    else:
+        raise ValueError(f"Error: The selected dates {end_date_cftime} or {end_date_cftime} are out of range. Model data time range is from {min_time} to {max_time}.")
+    
+
+
+
+### Load the model data and calculate model mass balance for each basin and total mass balance for whole region
+## Interpolate the data to each IMBIE time and calculate the time varying mass change
+def process_model_data(mod_ds,time_var, IMBIE_total_mass_change_sum, \
+                       start_date_cftime, end_date_cftime, start_date_fract, end_date_fract, \
+                       rho_ice, projection, shape_filename, icesheet):
+    
+    # Model data
+    lithk = mod_ds['lithk']
+    
     lithk['time'] = [date.year + (date.dayofyr-1) / days_in_year(date) for date in time_var.data]
 
     # Load basin shapefile 
@@ -49,15 +65,13 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date_cftime
     # Check the selcted dates are within the range of model data
     check_datarange(time_var,start_date_cftime, end_date_cftime)
         
-     # Set start_date as the first date in 'Year' and filtered_time_var as all subsequent dates
+    # Set start_date as the first date in 'Year' and filtered_time_var as all subsequent dates
     start_date_imbie = start_date_fract
     filtered_time_var = IMBIE_total_mass_change_sum['Year'].iloc[0:]
-  
-    
     
     #calculate area = x_resolution*y_resolution
-    x_coords = gis_ds['x'].values
-    y_coords = gis_ds['y'].values
+    x_coords = mod_ds['x'].values
+    y_coords = mod_ds['y'].values
     x_resolution = abs(x_coords[1] - x_coords[0])
     y_resolution = abs(y_coords[1] - y_coords[0])
     
@@ -65,7 +79,7 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date_cftime
     points = [Point(x, y) for x in x_coords for y in y_coords]
     
     # Initialize a dictionary to store residuals
-    modal_mass_changes = {}
+    model_mass_change = {}
     
     # Interpolate limnsw at the start date (initial reference)
     lithk_start = lithk.interp(time=start_date_fract).data.transpose().flatten()
@@ -81,7 +95,6 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date_cftime
     
         lithk_delta[np.isnan(lithk_delta)] = 0
     
-        
         #calculate area = x_resolution*y_resolution
         lithk_delta = (lithk_delta * x_resolution*y_resolution)*rho_ice * 1e-12
 
@@ -89,8 +102,8 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date_cftime
         # Sum all of the area mass change
         model_total_mass_balance_unmasked= np.nansum(lithk_delta)
                
-         ## BASIN AREA
-         # Sum all of the basin mass change
+        ## BASIN AREA
+        # Sum all of the basin mass change
         lithk_delta_flat = lithk_delta.flatten()
         
         # Create a lithk_df DataFrame with Geometry and Values
@@ -103,7 +116,7 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date_cftime
         lithk_gdf = gpd.GeoDataFrame(lithk_df, geometry='geometry', crs=projection)    
         
     
-           # Perform the spatial join only once in the first iteration
+        # Perform the spatial join only once in the first iteration
         if i == 0:
             joined_gdf = gpd.sjoin(lithk_gdf, basins_gdf, how="inner", predicate='intersects')
     
@@ -126,11 +139,11 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date_cftime
             raise ValueError("Invalid iceshee value. Must be 'GIS' or 'AIS'.")
         
         # Sum all of the basin mass change
-        model_total_mass_balance_masked= basin_mass_change_sums.sum()
+        model_total_mass_balance_masked = basin_mass_change_sums.sum()
           
 
         # Store the residual in the dictionary for the current time step
-        modal_mass_changes[str(time_step)] = {
+        model_mass_change[str(time_step)] = {
             'model_total_mass_balance_unmasked': model_total_mass_balance_unmasked,
             'model_total_mass_balance_masked': model_total_mass_balance_masked,
             'basin_mass_change_sums': basin_mass_change_sums,
@@ -139,13 +152,13 @@ def process_model_data(nc_filename,IMBIE_total_mass_change_sum,start_date_cftime
            
         
     # Return all results as a dictionary
-    return modal_mass_changes
+    return model_mass_change
 
 
 
 
 ### Extract time varying IMBIE mass balance data and calculate the time varying mass difference 
-def sum_MassBalance(obs_filename,start_date_fract,end_date_fract,mass_balance_column):
+def process_imbie_data(obs_filename,start_date_fract,end_date_fract,mass_balance_column):
 
     # Load the CSV file
     mass_balance_data = pd.read_csv(obs_filename)
@@ -202,7 +215,9 @@ def sum_MassBalance(obs_filename,start_date_fract,end_date_fract,mass_balance_co
  
 
 ### Calculate mass balance difference of IMBIE and model data
-def process_IMBIE(obs_filename, start_date_fract,end_date_fract, icesheet,basin_result,IMBIE_total_mass_change_sum,mass_balance_column,obs_east_filename=None, obs_west_filename=None, obs_peninsula_filename=None):
+def calculate_model_imbie_residuals(start_date_fract, end_date_fract, \
+                  icesheet, basin_result, IMBIE_total_mass_change_sum, mass_balance_column, \
+                  obs_east_filename=None, obs_west_filename=None, obs_peninsula_filename=None):
     # Initialize a dictionary to store results
     results = {}
     print_regionalresult_check = 'NO'
@@ -239,9 +254,9 @@ def process_IMBIE(obs_filename, start_date_fract,end_date_fract, icesheet,basin_
             print_regionalresult_check = 'YES'
             
             # Calculate total mass for each region
-            IMBIE_total_mass_change_sum_east = sum_MassBalance(obs_east_filename, start_date_fract,end_date_fract, mass_balance_column)
-            IMBIE_total_mass_change_sum_west = sum_MassBalance(obs_west_filename, start_date_fract,end_date_fract, mass_balance_column)
-            IMBIE_total_mass_change_sum_peninsula = sum_MassBalance(obs_peninsula_filename, start_date_fract,end_date_fract, mass_balance_column)
+            IMBIE_total_mass_change_sum_east = process_imbie_data(obs_east_filename, start_date_fract,end_date_fract, mass_balance_column)
+            IMBIE_total_mass_change_sum_west = process_imbie_data(obs_west_filename, start_date_fract,end_date_fract, mass_balance_column)
+            IMBIE_total_mass_change_sum_peninsula = process_imbie_data(obs_peninsula_filename, start_date_fract,end_date_fract, mass_balance_column)
     
             # Loop through IMBIE_total_mass_change_sum to populate results for each region
             regional_results = {}
