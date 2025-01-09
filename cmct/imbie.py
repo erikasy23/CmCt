@@ -155,15 +155,15 @@ def process_imbie_data(obs_filename,start_date_fract,end_date_fract,mass_balance
     ].copy()
     
     
-    # Initialize the previous day's mass balance value to the starting mass balance
+    # Initialize the previous date's mass balance value to the starting mass balance
     previous_mass_balance = mass_balance_start_value
     
-    # Calculate daily mass change from the previous day for each time step
+    # Calculate monthly mass change from the previous date for each time step
     mass_changes = []  # To store the daily mass changes
     
     for index, row in filtered_data.iterrows():
         current_mass_balance = row[mass_balance_column]
-        # Calculate the change from the previous day's balance
+        # Calculate the change from the previous date's balance
         mass_change = current_mass_balance-previous_mass_balance
         mass_changes.append(mass_change)
    
