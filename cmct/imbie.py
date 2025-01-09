@@ -152,7 +152,7 @@ def process_imbie_data(obs_filename,start_date_fract,end_date_fract,mass_balance
     # Filter data between start_date_converted and end_date_converted (inclusive)
     filtered_data = mass_balance_data[
         (mass_balance_data['Year'] > start_date_fract) & (mass_balance_data['Year'] <= end_date_fract)
-    ]
+    ].copy()
     
     
     # Initialize the previous day's mass balance value to the starting mass balance
