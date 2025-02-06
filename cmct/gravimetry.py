@@ -114,7 +114,7 @@ def transformToGeodetic(gsfc, gis_ds, start_date, end_date, rho_ice,rho_water, p
     lons = ll[:,0]
     lats = ll[:,1]
 
-    # # Calc difference between end_date and start_date:
+    # Calc difference between end_date and start_date
     lithk_start = lithk.interp(time=start_date).data.transpose().flatten()
     lithk_end = lithk.interp(time=end_date).data.transpose().flatten()
 
