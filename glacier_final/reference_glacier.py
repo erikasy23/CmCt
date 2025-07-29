@@ -1,5 +1,5 @@
-# import pandas as pd
-# import os
+import pandas as pd
+import os
 
 reference_glaciers = [
     "GULKANA",
@@ -94,7 +94,7 @@ def transliterate_name(name, mapping=transliteration_map):
 reference_glaciers_clean = [transliterate_name(name) for name in reference_glaciers]
 #print(reference_glaciers_clean)
 
-#csv_path = '/Users/erika/CmCt/glacier/glacier_final/reference_glacier/mass_balance.csv'
+csv_path = '/Users/erika/CmCt/glacier/glacier_final/reference_glacier/mass_balance.csv' ##
 reference_glaciers_csv = pd.read_csv(csv_path)
 
 # Convert both dataset glacier names and reference list to uppercase for case-insensitive matching
@@ -112,11 +112,12 @@ found_glaciers = reference_set.intersection(dataset_names)
 # filter dataset for found glaciers
 filtered_dataset = reference_glaciers_csv[reference_glaciers_csv['glacier_name'].str.upper().isin(found_glaciers)].copy()
 
-#csv_path_conversion = '/Users/erika/CmCt/glacier/glacier_final/reference_glacier/glacier.csv'
+csv_path_conversion = '/Users/erika/CmCt/glacier/glacier_final/reference_glacier/glacier.csv' ##
 #id_conversion = pd.read_csv(csv_path_conversion, dtype={'references': str})
 id_conversion = pd.read_csv(csv_path_conversion)
 # create dictionary for RGI_ID to RGI_CODE conversion
 rgi_id_to_code = dict(zip(id_conversion['id'], id_conversion['rgi60_ids'])) #lose 4 through 19 regions
+
 # Add RGI_CODE to the filtered dataset
 filtered_dataset['rgi_id'] = filtered_dataset['glacier_id'].map(rgi_id_to_code)
 # add region code

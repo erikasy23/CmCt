@@ -133,6 +133,8 @@ for region_code in selected_regions:
     # Create a DataFrame for the annual results
     annual_df = pd.DataFrame({
         "region": region_code,
+        "model": selected_model,
+        "scenario": selected_scenario,
         "hydro_year": hydro_years,
         "calendar_year": calendar_years,
         #"five_year_period": five_year_periods,
@@ -251,4 +253,3 @@ elif observation_dataset == 'Elevation Change (Hugonnet, 2021)':
     plt.legend()
     plt.grid()
     plt.show()
-
